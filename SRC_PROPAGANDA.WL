@@ -1974,7 +1974,7 @@ ClearAll[I$FORTRAN$LENGTH] ;
 I$FORTRAN$LENGTH::usage = "
 I$FORTRAN$LENGTH -- FORTRAN line length (integer), default value \"120\"
 " ;
-I$FORTRAN$LENGTH := 120 ;
+I$FORTRAN$LENGTH := 130 ;
 (* ################################################################################################################################################################ *)
 (* FORTRAN (SPLIT) *)
 (* ################################################################################################################################################################ *)
@@ -2055,10 +2055,10 @@ I$FORTRAN$LINE[                   (* -- MAKE FORTRAN LINE (STRING) *)
 (* ################################################################################################################################################################ *)
 ClearAll[I$FORTRAN$ARGUMENT] ;
 I$FORTRAN$ARGUMENT::usage = "
-I$FORTRAN$ARGUMENT[ARGUMENT] -- format FORTRAN argument, e.g. convert STATE([1,2,3,4]) to array section STATE(1:4:1)
+I$FORTRAN$ARGUMENT[ARGUMENT] -- format FORTRAN argument, e.g. convert X([1,2,3,4]) to array section X(1:4:1)
 " ;
 I$FORTRAN$ARGUMENT[               (* -- FORTRAN ARGUMENT OPTIMIZATION *)
-  ARGUMENT_String                 (* -- ARGUMENT (STRING), STATE([...]) *)
+  ARGUMENT_String                 (* -- ARGUMENT (STRING), X([...]) *)
 ] := Catch[
   Block[
     {HEAD,LIST,DIFFERENCE,LENGTH},
@@ -2102,7 +2102,7 @@ I$FORTRAN$REPLACE[                (* -- STRING REPLACEMEN RULES *)
         Thread[Rule[I$FLAG$PARAMETRIC,Map[StringTemplate["F(`1`)"],Range[I$DIMENSION$PARAMETRIC]]]],
         Thread[Rule[VARIABLE,Map[StringTemplate["O(`1`)"],Range[LENGTH]]]]
       ] ;
-      Dispatch[Flatten[List[VARIABLE,Rule[I$STATE,"STATE"],Rule[I$LOCAL,"L"],Rule[I$GLOBAL,"G"],Rule[I$PARAMETER,"S"]]]]
+      Dispatch[Flatten[List[VARIABLE,Rule[I$STATE,"X"],Rule[I$LOCAL,"L"],Rule[I$GLOBAL,"G"],Rule[I$PARAMETER,"S"]]]]
     ],
     SameQ[TABLE,"SEQUENCE"],
     Block[
@@ -2110,10 +2110,10 @@ I$FORTRAN$REPLACE[                (* -- STRING REPLACEMEN RULES *)
       LENGTH = I$TABLE[TABLE][NAME,"CODE","LENGTH"] ;
       VARIABLE = I$TABLE[TABLE][NAME,"CODE","DATA"] ;
       VARIABLE = Thread[Rule[VARIABLE,Map[StringTemplate["S(`1`)"],Range[LENGTH]]]] ;
-      Dispatch[Flatten[List[VARIABLE,Rule[I$STATE,"STATE"],Rule[I$LOCAL,"L"],Rule[I$GLOBAL,"G"],Rule[I$PARAMETER,"S"]]]]
+      Dispatch[Flatten[List[VARIABLE,Rule[I$STATE,"X"],Rule[I$LOCAL,"L"],Rule[I$GLOBAL,"G"],Rule[I$PARAMETER,"S"]]]]
     ],
     SameQ[TABLE,"ELEMENT"],
-    Dispatch[Flatten[List[Thread[Rule[I$TABLE["ELEMENT"][NAME,"GLOBAL"],Array[StringTemplate["G(`1`)"],Length[I$TABLE["ELEMENT"][NAME,"GLOBAL"]]]]],Rule[I$STATE,"STATE"],Rule[I$LOCAL,"L"],Rule[I$GLOBAL,"G"],Rule[I$PARAMETER,"S"]]]]
+    Dispatch[Flatten[List[Thread[Rule[I$TABLE["ELEMENT"][NAME,"GLOBAL"],Array[StringTemplate["G(`1`)"],Length[I$TABLE["ELEMENT"][NAME,"GLOBAL"]]]]],Rule[I$STATE,"X"],Rule[I$LOCAL,"L"],Rule[I$GLOBAL,"G"],Rule[I$PARAMETER,"S"]]]]
   ]
 ] ;
 (* ################################################################################################################################################################ *)
@@ -2138,7 +2138,7 @@ I$FORTRAN$SET[RULE_:List[]][I$SET[LEFT_,RIGHT_]] := Catch[
       I$FORTRAN$ARGUMENT[StringDelete[LHS,List["&","\n"]]],
       StringReplace[LHS,List[Rule["[",""],Rule["]",""]]]
     ] ;
-    If[SameQ[LHS,"STATE([])"],Throw["STATE=STATE\n"]] ;
+    If[SameQ[LHS,"X([])"],Throw["X=X\n"]] ;
     RHS = ReplaceRepeated[RHS,I$RULE$MATHEMATICA] ;
     RHS = N[RHS,I$FORTRAN$REAL$PRECISION] ;
     RHS = ReplaceAll[RHS,Rule[Power[VARIABLE_,-1],Divide[N[1,I$FORTRAN$REAL$PRECISION],VARIABLE]]] ;
@@ -2160,7 +2160,7 @@ I$FORTRAN$SET[RULE_:List[]][I$SET[LEFT_,RIGHT_]] := Catch[
     RHS = StringDelete[RHS,List[StringTemplate["1._`1`*"][I$FORTRAN$REAL$KIND]]] ;
     LHS = If[UnsameQ[StringTake[RHS,1],"["],StringDelete[LHS,List["[","]"]],LHS] ;
     If[
-      StringMatchQ[LHS,StringExpression["STATE([",Blank[],"])"]],
+      StringMatchQ[LHS,StringExpression["X([",Blank[],"])"]],
       I$FORTRAN$SPLIT[StringDelete[StringJoin[LHS,"=",RHS],List["[","]"]]],
       I$FORTRAN$SPLIT[StringJoin[LHS,"=",RHS]]
     ]
@@ -2199,7 +2199,7 @@ I$FORTRAN$DEFINITIONS[            (* -- GENERATE FORTRAN MAP DEFINITIONS *)
       StringTemplate[" REAL(`1`),INTENT(IN) :: S\n"][I$FORTRAN$REAL$KIND],
       StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(IN) :: L\n"][I$FORTRAN$REAL$KIND,Max[List[1,Length[I$TABLE["MAP"][NAME,"LOCAL"]]]]],
       StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(IN) :: F\n"][I$FORTRAN$REAL$KIND,Max[List[1,I$DIMENSION$PARAMETRIC]]],
-      StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(INOUT) :: STATE\n"][I$FORTRAN$REAL$KIND,Plus[I$DIMENSION$VARIABLES,OptionValue["EXTEND"]]],
+      StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(INOUT) :: X\n"][I$FORTRAN$REAL$KIND,Plus[I$DIMENSION$VARIABLES,OptionValue["EXTEND"]]],
       StringTemplate[" REAL(`1`),DIMENSION(`2`) :: O\n"][I$FORTRAN$REAL$KIND,Max[List[1,I$TABLE["MAP"][NAME,"CODE","LENGTH"]]]],
       " INTEGER :: I,J,K,N\n",
       Map[Composition[StringTemplate[" `1`\n"],ToUpperCase,StringTrim],OptionValue["VARIABLES"]]
@@ -2233,7 +2233,7 @@ I$FORTRAN$DEFINITIONS[            (* -- GENERATE FORTRAN SEQUENCE DEFINITIONS *)
         ]
       ],
       StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(IN) :: F\n"][I$FORTRAN$REAL$KIND,Max[List[1,I$DIMENSION$PARAMETRIC]]],
-      StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(INOUT) :: STATE\n"][I$FORTRAN$REAL$KIND,Plus[I$DIMENSION$VARIABLES,OptionValue["EXTEND"]]],
+      StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(INOUT) :: X\n"][I$FORTRAN$REAL$KIND,Plus[I$DIMENSION$VARIABLES,OptionValue["EXTEND"]]],
       " INTEGER :: I,J,K,N\n",
       Map[Composition[StringTemplate[" `1`\n"],ToUpperCase,StringTrim],OptionValue["VARIABLES"]]
     ]
@@ -2262,7 +2262,7 @@ I$FORTRAN$DEFINITIONS[            (* -- GENERATE FORTRAN SEQUENCE DEFINITIONS *)
       StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(IN) :: LENGTH\n"][I$FORTRAN$REAL$KIND,Length[I$TABLE["ELEMENT"][NAME,"ORDERING"]]],
       StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(IN) :: G\n"][I$FORTRAN$REAL$KIND,Max[List[1,Length[I$TABLE["ELEMENT"][NAME,"GLOBAL"]]]]],
       StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(IN) :: F\n"][I$FORTRAN$REAL$KIND,Max[List[1,I$DIMENSION$PARAMETRIC]]],
-      StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(INOUT) :: STATE\n"][I$FORTRAN$REAL$KIND,Plus[I$DIMENSION$VARIABLES,OptionValue["EXTEND"]]],
+      StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(INOUT) :: X\n"][I$FORTRAN$REAL$KIND,Plus[I$DIMENSION$VARIABLES,OptionValue["EXTEND"]]],
       StringTemplate[" INTEGER,DIMENSION(`1`) :: NUMBER_OF_STEPS\n"][Length[I$TABLE["ELEMENT"][NAME,"ORDERING"]]],
       StringTemplate[" REAL(`1`),DIMENSION(`2`) :: STEP_LENGTH\n"][I$FORTRAN$REAL$KIND,Length[I$TABLE["ELEMENT"][NAME,"ORDERING"]]],
       StringTemplate[" REAL(`1`),DIMENSION(`2`) :: S\n"][I$FORTRAN$REAL$KIND,Max[Through[Map[I$TABLE["SEQUENCE"],I$TABLE["ELEMENT"][NAME,"ORDERING"]]["CODE","LENGTH"]]]],
@@ -2328,7 +2328,7 @@ I$FORTRAN$MAP[                    (* -- GENERATE FORTRAN CODE FOR MAP *)
     ONE = Map[Composition[Function[StringTemplate[" !IO_PROLOG WRITE(`1`,`2`) `3`\n"][OptionValue["IO_UNIT"],OptionValue["IO_FORMAT"],Slot[1]]],StringTrim],OptionValue["IO_PROLOG"]] ;
     TWO = Map[Composition[Function[StringTemplate[" !IO_EPILOG WRITE(`1`,`2`) `3`\n"][OptionValue["IO_UNIT"],OptionValue["IO_FORMAT"],Slot[1]]],StringTrim],OptionValue["IO_EPILOG"]] ;
     SUBROUTINE = StringJoin[
-      StringTemplate["SUBROUTINE `1`_MAP_SUB(S,L,F,STATE)\n"][NAME],
+      StringTemplate["SUBROUTINE `1`_MAP_SUB(S,L,F,X)\n"][NAME],
       DEFINITION["DATA"],
       StringDelete[PROLOG," \n"],
       ONE,
@@ -2411,7 +2411,7 @@ I$FORTRAN$SEQUENCE[               (* -- FORTRAN CODE FOR SEQUENCE *)
             StringTemplate["  S=`1`,&\n"][FACTOR],
             StringTemplate["  L=L_`1`,&\n"][LOCAL],
             "  F=F,&\n",
-            "  STATE=STATE&\n",
+            "  X=X&\n",
             " )\n"
           ]
         ]
@@ -2419,9 +2419,9 @@ I$FORTRAN$SEQUENCE[               (* -- FORTRAN CODE FOR SEQUENCE *)
       CODE
     ] ;
     SUBROUTINE = StringJoin[
-      StringTemplate["SUBROUTINE `1`_SEQ_SUB(S,`2`F,STATE)\n"][NAME,StringJoin[Map[StringTemplate["L_`1`,"],Range[Length[I$TABLE["SEQUENCE"][NAME,"UNIQUE"]]]]]],
+      StringTemplate["SUBROUTINE `1`_SEQ_SUB(S,`2`F,X)\n"][NAME,StringJoin[Map[StringTemplate["L_`1`,"],Range[Length[I$TABLE["SEQUENCE"][NAME,"UNIQUE"]]]]]],
       DEFINITION["DATA"],
-      StringTemplate[" IF(STATE(1).LT.5.E-1_`1`) RETURN\n"][I$FORTRAN$REAL$KIND],
+      StringTemplate[" IF(X(1).LT.5.E-1_`1`) RETURN\n"][I$FORTRAN$REAL$KIND],
       StringDelete[PROLOG," \n"],
       ONE,
       CODE,
@@ -2473,7 +2473,7 @@ I$FORTRAN$TEST[                   (* -- CONVERT TEST *)
   {HEAD,LEFT,RIGHT,RULE,VARIABLE},
   HEAD = Head[TEST] ;
   List[LEFT,RIGHT] = N[Fold[ReplaceAll,Apply[List,TEST],List[I$RULE$STATE,Thread[Rule[GLOBAL,Array[I$GLOBAL,Length[GLOBAL]]]]]],I$FORTRAN$REAL$PRECISION] ;
-  RULE = Dispatch[Flatten[List[Thread[Rule[I$FLAG$PARAMETRIC,Map[StringTemplate["F(`1`)"],Range[I$DIMENSION$PARAMETRIC]]]],Rule[I$STATE,"STATE"],Rule[I$GLOBAL,"G"],Rule[I$PARAMETER,"S"]]]] ;
+  RULE = Dispatch[Flatten[List[Thread[Rule[I$FLAG$PARAMETRIC,Map[StringTemplate["F(`1`)"],Range[I$DIMENSION$PARAMETRIC]]]],Rule[I$STATE,"X"],Rule[I$GLOBAL,"G"],Rule[I$PARAMETER,"S"]]]] ;
   LEFT = I$FORTRAN$SET[RULE][I$SET[1,ReplaceAll[LEFT,RuleDelayed[VARIABLE_Real,I$FORTRAN$REAL[VARIABLE]]]]] ;
   RIGHT = I$FORTRAN$SET[RULE][I$SET[1,ReplaceAll[RIGHT,RuleDelayed[VARIABLE_Real,I$FORTRAN$REAL[VARIABLE]]]]] ;
   HEAD = Which[
@@ -2510,10 +2510,10 @@ I$FORTRAN$CHECK[                  (* -- GENERATE APERTURE BLOCK *)
   ] ;
   CODE = I$FORTRAN$SPLIT[CODE] ;
   StringJoin[
-    StringTemplate["LOGICAL FUNCTION CHECK_`1`(G,F,STATE)\n"][INDEX],
+    StringTemplate["LOGICAL FUNCTION CHECK_`1`(G,F,X)\n"][INDEX],
     StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(IN) :: G\n"][I$FORTRAN$REAL$KIND,Max[List[1,Length[GLOBAL]]]],
     StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(IN) :: F\n"][I$FORTRAN$REAL$KIND,Max[List[1,I$DIMENSION$PARAMETRIC]]],
-    StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(IN) :: STATE\n"][I$FORTRAN$REAL$KIND,I$DIMENSION$VARIABLES],
+    StringTemplate[" REAL(`1`),DIMENSION(`2`),INTENT(IN) :: X\n"][I$FORTRAN$REAL$KIND,I$DIMENSION$VARIABLES],
     CODE,
     "\n",
     StringTemplate["END FUNCTION CHECK_`1`\n"][INDEX]
@@ -2559,7 +2559,7 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
     WEIGHT = Through[Map[I$TABLE["SEQUENCE"],WEIGHT]["CODE","SET"]] ;
     WEIGHT = N[Map[Composition[Last,Transpose,Map[Apply[List]],Last,First],WEIGHT],I$FORTRAN$REAL$PRECISION] ;
     WEIGHT = Map[Function[I$FORTRAN$SET[RULE][I$SET[I$STATE[Range[Length[Slot[1]]]],Slot[1]]]],WEIGHT] ;
-    WEIGHT = StringReplace[WEIGHT,Rule["STATE","S"]] ;
+    WEIGHT = StringReplace[WEIGHT,Rule["X","S"]] ;
     CODE = Subtract[Map[First,Flatten[StringPosition[WEIGHT,"="],1]],1] ;
     CODE = StringTrim[MapThread[StringTake,List[WEIGHT,CODE]]] ;
     CODE = Transpose[List[WEIGHT,I$TABLE["ELEMENT"][NAME,"ORDERING"],CODE,Range[Length[WEIGHT]]]] ;
@@ -2589,10 +2589,10 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
               StringTemplate["   S=`1`,&\n"][SUBROUTINE],
               SET,
               "   F=F,&\n",
-              "   STATE=STATE&\n",
+              "   X=X&\n",
               "  )\n",
-              "  !IO_STEP WRITE(*,*) STATE\n",
-              StringTemplate["  IF(T(`1`).AND.CHECK_`1`(G,F,STATE))THEN\n   STATE(1)=0.0_`2`\n   RETURN\n  END IF\n"][INDEX,I$FORTRAN$REAL$KIND],
+              "  !IO_STEP WRITE(*,*) X\n",
+              StringTemplate["  IF(T(`1`).AND.CHECK_`1`(G,F,X))THEN\n   X(1)=0.0_`2`\n   RETURN\n  END IF\n"][INDEX,I$FORTRAN$REAL$KIND],
               " END DO\n"
             ]
           ]
@@ -2623,30 +2623,30 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
               StringTemplate["  `1`=`1`*STEP_LENGTH(`2`)\n"][SUBROUTINE,INDEX],
               "  J=1\n",
               "  K=0\n",
-              "  THIS=STATE\n",
+              "  THIS=X\n",
               StringTemplate["  CALL `1`_SEQ_SUB(&\n"][SEQUENCE],
               StringTemplate["   S=`1`,&\n"][SUBROUTINE],
               SET,
               "   F=F,&\n",
-              "   STATE=THIS&\n",
+              "   X=THIS&\n",
               "  )\n",
-              StringTemplate["  IF(T(`1`).AND.CHECK_`1`(G,F,THIS))THEN\n   THIS(1)=0.0_`2`\n   STATE=THIS\n   RETURN\n  END IF\n"][INDEX,I$FORTRAN$REAL$KIND],
+              StringTemplate["  IF(T(`1`).AND.CHECK_`1`(G,F,THIS))THEN\n   THIS(1)=0.0_`2`\n   X=THIS\n   RETURN\n  END IF\n"][INDEX,I$FORTRAN$REAL$KIND],
               "  DO\n",
               "   J=2*J\n",
               "   K=K+1\n",
-              "   NEXT=STATE\n",
+              "   NEXT=X\n",
               StringTemplate["   `1`=`1`/REAL(2,`2`)\n"][SUBROUTINE,I$FORTRAN$REAL$KIND],
               "   DO N=1,J,1\n",
               StringTemplate["    CALL `1`_SEQ_SUB(&\n"][SEQUENCE],
               StringTemplate["     S=`1`,&\n"][SUBROUTINE],
               Map[StringTemplate["  ``"],SET],
               "     F=F,&\n",
-              "     STATE=NEXT&\n",
+              "     X=NEXT&\n",
               "    )\n",
               "   END DO\n",
               StringTemplate["   !ADAPTIVE WRITE(*,*) I,J,K,CONVERGENCE_`1`(G,F,THIS,NEXT)\n"][INDEX],
               StringTemplate["   IF((CONVERGENCE_`1`(G,F,THIS,NEXT)).OR.(K.GT.64))THEN\n"][INDEX],
-              "    STATE=NEXT\n",
+              "    X=NEXT\n",
               "    EXIT\n",
               "   ELSE\n",
               "    THIS=NEXT\n",
@@ -2711,8 +2711,8 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
               EXPRESSION = I$FORTRAN$TEST[Greater[EXPRESSION,0],I$TABLE["ELEMENT"][NAME,"GLOBAL"]] ;
               EXPRESSION = StringDelete[EXPRESSION,List[".GT.(0)","&"," ","\n"]] ;
               EXPRESSION = StringJoin[
-                I$FORTRAN$SPLIT[StringJoin[" VALUE_THIS=",StringReplace[EXPRESSION,Rule["STATE","THIS"]],"\n"]],
-                I$FORTRAN$SPLIT[StringJoin[" VALUE_NEXT=",StringReplace[EXPRESSION,Rule["STATE","NEXT"]],"\n"]],
+                I$FORTRAN$SPLIT[StringJoin[" VALUE_THIS=",StringReplace[EXPRESSION,Rule["X","THIS"]],"\n"]],
+                I$FORTRAN$SPLIT[StringJoin[" VALUE_NEXT=",StringReplace[EXPRESSION,Rule["X","NEXT"]],"\n"]],
                 StringTemplate[" CONVERGENCE_`1`=(ABS(VALUE_NEXT-VALUE_THIS).LE.(`2`))\n"][INDEX,I$FORTRAN$REAL[OptionValue["TOLERANCE"]]]
               ] ;
               StringJoin[
@@ -2739,9 +2739,9 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
       " PRIVATE\n",
       DEFINITION["MODULE"],
       "CONTAINS\n",
-      StringTemplate["SUBROUTINE `1`_ELE_SUB(T,MAX_STEP_LENGTH,LENGTH,G,F,STATE)\n"][NAME],
+      StringTemplate["SUBROUTINE `1`_ELE_SUB(T,MAX_STEP_LENGTH,LENGTH,G,F,X)\n"][NAME],
       DEFINITION["DATA"],
-      StringTemplate[" IF(STATE(1).LT.5.E-1_`1`) RETURN\n"][I$FORTRAN$REAL$KIND],
+      StringTemplate[" IF(X(1).LT.5.E-1_`1`) RETURN\n"][I$FORTRAN$REAL$KIND],
       " NUMBER_OF_STEPS=CEILING(ABS(LENGTH)/MAX_STEP_LENGTH)\n",
       StringTemplate[" STEP_LENGTH=LENGTH/REAL(NUMBER_OF_STEPS,`1`)\n"][I$FORTRAN$REAL$KIND],
       StringDelete[PROLOG," \n"],
@@ -2792,7 +2792,7 @@ I$FORTRAN$NORMALIZE[              (* -- NORMALIZATION OF 1ST ORDER DERIVATIVES *
     LIST = Map[DeleteDuplicates,LIST] ;
     VARIABLE = Partition[ReplaceAll[I$VARIABLES$DERIVATIVE,I$RULE$STATE],I$DIMENSION$CANONICAL] ;
     VARIABLE = ReplaceAll[VARIABLE,Rule[I$STATE,Identity]] ;
-    VARIABLE = StringDelete[Map[StringTemplate["STATE([`1`])"],VARIABLE],List["{","}"]] ;
+    VARIABLE = StringDelete[Map[StringTemplate["X([`1`])"],VARIABLE],List["{","}"]] ;
     VARIABLE = Map[I$FORTRAN$ARGUMENT,VARIABLE] ;
     NORMAL = Map[StringTemplate["NORM2(`1`)"],VARIABLE] ;
     VARIABLE = Map[Function[StringJoin[Slot[1],"/"]],VARIABLE] ;
@@ -2910,7 +2910,7 @@ I$FORTRAN$LATTICE[                (* -- GENERATE FORTRAN LATTICE FILE *)
             " ",RUN,
             " ",PARAMETER,
             " ",RULE,
-            "  STATE=STATE&\n",
+            "  X=X&\n",
             " )\n"
           ] ;
           StringReplace[RESULT,Rule["[]",StringTemplate["[0._`1`]"][I$FORTRAN$REAL$KIND]]]
@@ -2926,16 +2926,16 @@ I$FORTRAN$LATTICE[                (* -- GENERATE FORTRAN LATTICE FILE *)
     ] ;
     (* DEFINE SUBROUTINE *)
     SUBROUTINE = StringJoin[
-      StringTemplate["SUBROUTINE `1`_LAT_SUB(STATE) &\n"][NAME],
+      StringTemplate["SUBROUTINE `1`_LAT_SUB(X) &\n"][NAME],
       StringTemplate[" BIND(C, NAME = \"`1`_lat_sub\")\n"][ToLowerCase[NAME]],
       " USE ISO_C_BINDING\n",
       USE,
       " IMPLICIT NONE\n",
       StringTemplate[" INTEGER,PARAMETER :: `1`=`2`\n"][I$FORTRAN$REAL$KIND,I$FORTRAN$REAL$KIND$VALUE],
-      StringTemplate[" REAL(`1`),DIMENSION(`2`), INTENT(INOUT) :: STATE\n"][I$FORTRAN$REAL$KIND,DIMENSION],
+      StringTemplate[" REAL(`1`),DIMENSION(`2`), INTENT(INOUT) :: X\n"][I$FORTRAN$REAL$KIND,DIMENSION],
       ToUpperCase[OptionValue["DEFINITIONS"]],
       "",
-      StringTemplate[" IF(STATE(1).LT.5.E-1_`1`)THEN\n  RETURN\n ENDIF\n"][I$FORTRAN$REAL$KIND],
+      StringTemplate[" IF(X(1).LT.5.E-1_`1`)THEN\n  RETURN\n ENDIF\n"][I$FORTRAN$REAL$KIND],
       CALL,
       StringTemplate["END SUBROUTINE `1`_LAT_SUB\n"][NAME]
     ] ;
@@ -2983,22 +2983,6 @@ I$FORTRAN$LIBRARY[                (* -- CREATE LIBRARY *)
   Block[
     {WRAPPER,OBJECT,LIBRARY},
     (* WRAPPER *)
-    WRAPPER = StringTemplate[
-    "
-      //wrapper.cc
-      #include \"WolframLibrary.h\"
-      #include \"WolframCompileLibrary.h\"
-      DLLEXPORT mint WolframLibrary_getVersion(){ return WolframLibraryVersion ; }
-      DLLEXPORT int WolframLibrary_initialize(WolframLibraryData libData){ return 0 ; }
-      extern \"C\" {void `1`(double*) ;}
-      EXTERN_C DLLEXPORT int TRACK_`1`(WolframLibraryData libData, mint Argc, MArgument *Args, MArgument Res){
-        MTensor state = MArgument_getMTensor(Args[0]) ;
-        `1`(MTensor_getRealDataMacro(state)) ;
-        MArgument_setMTensor(Res,state) ;
-        return LIBRARY_NO_ERROR ;
-      }
-    "
-    ][StringJoin[LATTICE["SRC"],"_sub"]] ;
     WRAPPER = StringTemplate[
     "
       //wrapper.cc
@@ -3057,7 +3041,7 @@ I$FORTRAN$INITIAL[INITIAL] -- convert given state initial <INITIAL> to FORTRAN f
 " ;
 I$FORTRAN$INITIAL[
   INITIAL_
-] := I$FORTRAN$SPLIT[StringDelete[ToUpperCase[StringJoin[" STATE=[",StringTake[I$FORTRAN$LINE[INITIAL],List[7,-2]],"]"]]," "]] ;
+] := I$FORTRAN$SPLIT[StringDelete[ToUpperCase[StringJoin[" X=[",StringTake[I$FORTRAN$LINE[INITIAL],List[7,-2]],"]"]],List[" ","&","\n"]]] ;
 (* ################################################################################################################################################################ *)
 (* FORTRAN (PROGRAM) *)
 (* ################################################################################################################################################################ *)
@@ -3083,7 +3067,7 @@ I$FORTRAN$PROGRAM[                (* -- GENERATE FORTRAN PROGRAM *)
   (* EXTRACT DEFINITIONS, APERTURE AND DIMENSION *)
   POSITION = First[Flatten[Position[SUBROUTINE,ToUpperCase[" IMPLICIT NONE"]]]] ;
   DEFINITION = Take[SUBROUTINE,List[POSITION,-1]] ;
-  POSITION = First[Flatten[Position[DEFINITION,StringTemplate[" IF(STATE(1).LT.5.E-1_``)THEN"][I$FORTRAN$REAL$KIND]]]] ;
+  POSITION = First[Flatten[Position[DEFINITION,StringTemplate[" IF(X(1).LT.5.E-1_``)THEN"][I$FORTRAN$REAL$KIND]]]] ;
   FLAG = Take[DEFINITION,List[POSITION,Plus[1,1,POSITION]]] ;
   FLAG = Map[Function[StringJoin[Slot[1],"\n"]],FLAG] ;
   DEFINITION = Take[DEFINITION,List[1,Subtract[POSITION,1]]] ;
@@ -3109,7 +3093,7 @@ I$FORTRAN$PROGRAM[                (* -- GENERATE FORTRAN PROGRAM *)
       StringTemplate[" IF(ARG_NUM.NE.`1`) STOP\n"][DIMENSION],
       " DO ARG_IND=1,ARG_NUM,1\n",
       "  CALL GET_COMMAND_ARGUMENT(ARG_IND,ARG_VAL(ARG_IND))\n",
-      "  READ(ARG_VAL(ARG_IND),*) STATE(ARG_IND)\n",
+      "  READ(ARG_VAL(ARG_IND),*) X(ARG_IND)\n",
       " END DO"
     ],
     I$FORTRAN$INITIAL[N[INITIAL,I$FORTRAN$REAL$PRECISION]]
@@ -3132,7 +3116,7 @@ I$FORTRAN$PROGRAM[                (* -- GENERATE FORTRAN PROGRAM *)
     DEFINITION,
     STATE,
     OptionValue["PROLOG"],
-    StringTemplate["  CALL `1`_SUB(STATE)\n"][ToUpperCase[LATTICE["SRC"]]],
+    StringTemplate["  CALL `1`_SUB(X)\n"][ToUpperCase[LATTICE["SRC"]]],
     OptionValue["EPILOG"],
     " !IO_DATA CLOSE(10)\n",
     StringTemplate["END PROGRAM `1` \n"][ToUpperCase[NAME]]
@@ -4297,7 +4281,7 @@ I$IMPORT$TFS[                     (* -- IMPORT TFS FILE *)
     DATA = Merge[OptionValue["MERGE"]][Thread[Apply[Rule,DATA]]] ;
     DATA = Association[Rule["ELEMENT",DATA]] ;
     SEQUENCE = Association[Rule["SEQUENCE",SEQUENCE]] ;
-     Join[LIST,COLUMN,TYPE,SEQUENCE,DATA]
+    Join[LIST,COLUMN,TYPE,SEQUENCE,DATA]
   ]
 ] ;
 (* ################################################################################################################################################################ *)
