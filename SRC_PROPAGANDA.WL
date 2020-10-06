@@ -1964,6 +1964,9 @@ I$FORTRAN$REAL[                   (* -- CONVERT REAL NUMBER TO FORTRAN FORM (RET
   SIGN = Sign[EXPONENT] ;
   SIGN = Which[GreaterEqual[SIGN,0],"+",Less[SIGN,0],"-"] ;
   EXPONENT = Abs[EXPONENT] ;
+  MANTISSA = ToString[MANTISSA] ;
+  MANTISSA =  StringTrim[MANTISSA,"0"..] ;
+  MANTISSA = If[SameQ[MANTISSA,"."],"0.",MANTISSA] ;
   If[UnsameQ[EXPONENT,0],StringTemplate["`1`E`2``3`_`4`"][MANTISSA,SIGN,EXPONENT,I$FORTRAN$REAL$KIND],StringTemplate["`1`_`2`"][MANTISSA,I$FORTRAN$REAL$KIND]]
 ] ;
 I$FORTRAN$REAL[REAL_String] := REAL ;
@@ -2314,11 +2317,25 @@ I$FORTRAN$MAP[                    (* -- GENERATE FORTRAN CODE FOR MAP *)
   OPTIONS:OptionsPattern[]        (* -- OPTION(S) *)
 ] := Catch[
   Block[
-    {DEFINITION,RULE,CODE,ARGUMENT,FIRST,LAST,PROLOG,EPILOG,ONE,TWO,SUBROUTINE,FILE},
+    {DEFINITION,RULE,INDEX,CODE,ARGUMENT,FIRST,LAST,PROLOG,EPILOG,ONE,TWO,SUBROUTINE,FILE},
     DEFINITION = I$FORTRAN$DEFINITIONS["MAP",NAME,Apply[Sequence,FilterRules[Flatten[List[OPTIONS,Options[I$FORTRAN$MAP]]],Options[I$FORTRAN$DEFINITIONS]]]] ;
     RULE = I$FORTRAN$REPLACE["MAP",NAME] ;
     CODE = I$TABLE["MAP"][NAME,"CODE","SET"] ;
     CODE = ReplaceAll[CODE,Rule[I$SET[ARGUMENT_,I$BLOCK[List[___],I$COMPOUND$EXPRESSION[FIRST___,List[LAST__]]]],List[FIRST,I$SET[ARGUMENT,List[LAST]]]]] ;
+    If[
+      UnsameQ[I$VARIABLES$DERIVATIVE,List[]],
+      INDEX = Plus[1,I$DIMENSION$PARAMETRIC,I$DIMENSION$CANONICAL] ;
+      CODE = ReplaceAll[
+	      CODE,
+        RuleDelayed[
+	        I$SET[I$STATE[LIST__],EXPRESSION_],
+	        List[
+	          I$SET[I$STATE[Select[LIST,Curry[Greater][INDEX]]],Take[EXPRESSION,-Length[Select[LIST,Curry[Greater][INDEX]]]]],
+	          I$SET[I$STATE[Select[LIST,Curry[LessEqual][INDEX]]],Take[EXPRESSION,+Length[Select[LIST,Curry[LessEqual][INDEX]]]]]
+	        ]
+	      ]
+	    ] ;
+    ] ;
     CODE = Flatten[CODE] ;
     CODE = Map[I$FORTRAN$SET[RULE],CODE] ;
     CODE = Map[StringJoin,Transpose[List[CODE,ConstantArray["\n",Length[CODE]]]]] ;
