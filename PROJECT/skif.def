@@ -1,0 +1,64 @@
+rf1: rfcavity,l:= 1e-005,volt:= urf1,lag:= lag1,harmon:= 567;
+rf3: rfcavity,l:= 1e-005,volt:= urf3,lag:= lag3,harmon:= 567*3;
+kick1:HKICKER,L=0.25, KICK=0;
+kick2:HKICKER,L=0.25, KICK=0;
+kick3:HKICKER,L=0.25, KICK=0;
+kick4:HKICKER,L=0.25, KICK=0;
+
+!******************
+!Основная ячейка
+!******************
+bf:  sbend,l:= 0.15,angle:= TBF,k1:= K1_BF,E1:=TBF/2,E2:=TBF/2;
+bd:  sbend, l:= 0.325,angle:= TBd/4,k1:= K1_Bd;
+bdl: sbend,l:= 0.325,angle:= TBd/4,k1:= K1_Bd,E1:=TBd/2;
+bdr: sbend,l:= 0.325,angle:= TBd/4,k1:= K1_Bd,E2:=TBd/2;
+sf: sextupole,l:= 0.15,k2:= K2_SF;
+sfh: sextupole,l:= 0.15/2,k2:= K2_SF; ! Половинная секступоль
+SDh: sextupole,l:= 0.25/2,k2:= K2_SD; ! Половинная секступоль
+SD: sextupole,l:= 0.25,k2:= K2_SD;
+
+
+
+
+!******************
+!Ячейка с сильнополевым магнитом
+!******************
+bfi:  sbend,l:= 0.15,angle:=TBFI,k1:= K1_BFI,E1:=TBFI/2,E2:=TBFI/2;
+bdil: sbend,l:= 0.235,angle:= TBDI/2,k1:=K1_BDI,E1:=TBDI/2;
+bdir: sbend,l:= 0.235,angle:= TBDI/2,k1:=K1_BDI,E2:=TBDI/2;
+Lbi=0.0370330378510647;
+bi: sbend, l:=(Tbi/4)*10.00692286/2.051055   ,angle:=TBi/4 ;
+bil: sbend,l:=(Tbi/4)*10.00692286/2.051055   ,angle:=TBi/4,E1:=TBI/2 ;
+bir: sbend,l:=(Tbi/4)*10.00692286/2.051055   ,angle:=TBi/4,E2:=TBI/2 ;
+
+
+
+!******************
+!Супрессор инжекция
+!******************
+qqm02: quadrupole,l:= 0.3,k1:= K1_qqm02;
+qqm03: quadrupole,l:= 0.3,k1:= K1_qqm03;
+!bf2:  sbend,l:= 0.15,angle:= TBF2,k1:= K1_BF2,E1:=TBF2/2,E2:=TBF2/2;
+bf2:  quadrupole,l:= 0.15,k1:= K1_BF2;
+bd2L: sbend, l:= 0.345,angle:= TBD2/2,k1:= K1_BD2,E1:=TBD2/2;
+bd2R: sbend, l:= 0.345,angle:= TBD2/2,k1:= K1_BD2,E2:=TBD2/2;
+
+
+!******************
+!Супрессор ID(перетяжка)
+!******************
+qqm04: quadrupole,l:= 0.25,k1:= K1_qqm04;
+
+
+
+
+!******************
+!Коррекция
+!******************
+CC: multipole, ksl={0,0,0,0};
+Cor: KICKER,L=0, HKICK=0,VKICK=0;
+
+
+
+
+

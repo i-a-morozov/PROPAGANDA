@@ -386,6 +386,7 @@ I$EXPAND[                         (* -- (SERIES) EXPAND EXPRESSION ACCORDING TO 
   EXPRESSION_                     (* -- EXPRESSION TO EXPAND *)
 ] := Block[
   {SERIES, LIST},
+  SERIES = I$EXPAND[I$ORDER,I$VARIABLES$CANONICAL,EXPRESSION] ;
   SERIES = I$EXPAND[I$ORDER,I$VARIABLES$DEVIATION,EXPRESSION] ;
   If[
     UnsameQ[List[],Intersection[I$VARIABLES$DEVIATION,I$VARIABLES$CANONICAL]],
@@ -397,7 +398,7 @@ I$EXPAND[                         (* -- (SERIES) EXPAND EXPRESSION ACCORDING TO 
     SERIES = I$EXPAND[I$ORDER$PARAMETRIC,Last[Transpose[LIST]],SERIES] ;
     SERIES = Fold[Composition[Apply[I$EXPAND],Reverse,List],SERIES,LIST] ;
   ] ;
-  SERIES
+  Collect[SERIES,I$VARIABLES$CANONICAL]
 ] ;
 (* ################################################################################################################################################################ *)
 (* SYMPLECTIC TEST (MATRIX) *)
