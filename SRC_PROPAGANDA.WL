@@ -2680,12 +2680,7 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
     (* APERTURE *)
     If[
       SameQ[OptionValue["APERTURE"],Null],
-      APERTURE = Flatten[
-        List[
-          GreaterEqual[Total[Power[If[LessEqual[I$DIMENSION,Plus[1,1]],I$VARIABLES$CANONICAL$Q,Take[I$VARIABLES$CANONICAL$Q,Min[List[I$DIMENSION,Plus[1,1]]]]],Plus[1,1]]],1/1],
-          GreaterEqual[Total[Power[If[LessEqual[I$DIMENSION,Plus[1,1]],I$VARIABLES$CANONICAL$P,Take[I$VARIABLES$CANONICAL$P,Min[List[I$DIMENSION,Plus[1,1]]]]],Plus[1,1]]],1/10]
-        ]
-      ] ;
+      APERTURE = Thread[Greater[Take[I$VARIABLES$CANONICAL,Min[List[I$DIMENSION$CANONICAL,4]]],0.1]] ;
       APERTURE = Map[
         Function[I$FORTRAN$CHECK[Slot[1],APERTURE,I$TABLE["ELEMENT"][NAME,"GLOBAL"]]],
         Range[I$TABLE["ELEMENT"][NAME,"LENGTH"]]
@@ -2909,6 +2904,7 @@ I$FORTRAN$LATTICE[                (* -- GENERATE FORTRAN LATTICE FILE *)
           RUN = StringDelete[StringReplace[ToString[Map[I$FORTRAN$REAL,N[RUN,I$FORTRAN$REAL$PRECISION]]],I$RULE$FORTRAN]," "] ;
           PARAMETER = StringDelete[StringReplace[ToString[Map[I$FORTRAN$REAL,N[PARAMETER,I$FORTRAN$REAL$PRECISION]]],I$RULE$FORTRAN]," "] ;
           RULE = StringDelete[StringReplace[ToString[Map[I$FORTRAN$REAL,N[RULE,I$FORTRAN$REAL$PRECISION]]],I$RULE$FORTRAN]," "] ;
+          (*
           FLAG = StringJoin[StringJoin["T=",FLAG,","],"&\n"] ;
           FLAG = I$FORTRAN$SPLIT[FLAG] ;
           LENGTH = StringJoin[StringJoin["MAX_STEP_LENGTH=",LENGTH,","],"&\n"] ;
@@ -2919,6 +2915,22 @@ I$FORTRAN$LATTICE[                (* -- GENERATE FORTRAN LATTICE FILE *)
           PARAMETER = I$FORTRAN$SPLIT[PARAMETER] ;
           RULE = StringJoin[StringJoin["F=",RULE,","],"&\n"] ;
           RULE = I$FORTRAN$SPLIT[RULE] ;
+          *)
+          FLAG = StringJoin["T=",FLAG,","] ;
+          FLAG = I$FORTRAN$SPLIT[FLAG] ;
+          FLAG = StringJoin[FLAG,"&\n"] ;
+          LENGTH = StringJoin["MAX_STEP_LENGTH=",LENGTH,","] ;
+          LENGTH = I$FORTRAN$SPLIT[LENGTH] ;
+          LENGTH = StringJoin[LENGTH,"&\n"] ;
+          RUN = StringJoin["LENGTH=",RUN,","] ;
+          RUN = I$FORTRAN$SPLIT[RUN] ;
+          RUN = StringJoin[RUN,"&\n"] ;
+          PARAMETER = StringJoin["G=",PARAMETER,","] ;
+          PARAMETER = I$FORTRAN$SPLIT[PARAMETER] ;
+          PARAMETER = StringJoin[PARAMETER,"&\n"] ;
+          RULE = StringJoin["F=",RULE,","] ;
+          RULE = I$FORTRAN$SPLIT[RULE] ;
+          RULE = StringJoin[RULE,"&\n"] ;
           RESULT = StringJoin[
             " ",
             StringDelete[StringTemplate[" !`1`\n"][Slot[1]]," "],
@@ -4318,7 +4330,7 @@ I$MAKE$LAT[                       (* -- MAKE LATTICE FILES (USE Get[] TO LOAD <N
   MASK_Association,               (* -- TYPE RULES (LIST FOR EACH TYPE IN TABLE) *)
   OPTIONS:OptionsPattern[]        (* <MASK> = Association[...,<RULE_I>,...] *)
                                   (* <RULE_I> = <TYPE> \[Rule] {0/1,0/1,...}, SAME LENGTH AS # OF COLUMNS IN TABLE *)
-                                  (* <TYPE> -- ELEMENT TYPE (STRING) *) 
+                                  (* <TYPE> -- ELEMENT TYPE (STRING) *)
                                   (* 0/1 -- PARAMETER PRESENT/ABSENT FOR EACH TWISS COLUMN (POSITION FOR KEYWORD SHOULD ALWAYS BE THE 1ST AND PRESENT) *)
 ] := Catch[
   Block[
@@ -4422,7 +4434,11 @@ I$RULE$LTE$PARAMETERS := List[
   Rule["K2L","K2"],
   Rule["K3L","K3"],
   Rule["K4L","K4"],
-  Rule["K4L","K5"],
+  Rule["K5L","K5"],
+  Rule["K6L","K6"],
+  Rule["K7L","K7"],
+  Rule["K8L","K8"],
+  Rule["K9L","K9"],
   Rule["KSI","KS"]
 ] ;
 ClearAll[I$MAKE$LTE] ;
