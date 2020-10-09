@@ -1233,6 +1233,28 @@ I$TABLE$INFO[                     (* -- PRINT INFO FOR GIVEN TABLE AND KEY *)
 ] := Catch[
   Undefined
 ] ;
+ClearAll[I$MAKE$DOUBLE$STEP] ;
+I$MAKE$DOUBLE$STEP::usage = "
+I$MAKE$DOUBLE$STEP[HAMILTONIAN] -- generate maps for double extended phase space integration for given normal phase space hamiltonian <HAMILTONIAN>
+" ;
+(* ################################################################################################################################################################ *)
+(* MAKE (DOUBLE STEP) *)
+(* ################################################################################################################################################################ *)
+I$MAKE$DOUBLE$STEP[               (* -- GENERATE MAPS FOR DOUBLE EXTENDED PHASE SPACE INTEGRATION *)
+  HAMILTONIAN_                    (* -- HAMILTONIAN FUNCTION (EXPRESSION) *)
+] := Block[
+  {Q$LIST,P$LIST,X$LIST,Y$LIST,FUNCTION,FIELD,MAP$A,MAP$B},
+  Q$LIST = Take[I$VARIABLES$CANONICAL$Q,+Divide[I$DIMENSION,Plus[1,1]]] ;
+  P$LIST = Take[I$VARIABLES$CANONICAL$P,+Divide[I$DIMENSION,Plus[1,1]]] ;
+  X$LIST = Take[I$VARIABLES$CANONICAL$Q,-Divide[I$DIMENSION,Plus[1,1]]] ;
+  Y$LIST = Take[I$VARIABLES$CANONICAL$P,-Divide[I$DIMENSION,Plus[1,1]]] ;
+  FUNCTION = Apply[Function,List[Flatten[List[Q$LIST,P$LIST]],HAMILTONIAN]] ;
+  FIELD = I$VECTOR$FIELD[Apply[FUNCTION,Flatten[List[Q$LIST,Y$LIST]]]] ;
+  MAP$A = Plus[I$VARIABLES$CANONICAL,Times[I$PARAMETER,FIELD]] ;
+  FIELD = I$VECTOR$FIELD[Apply[FUNCTION,Flatten[List[X$LIST,P$LIST]]]] ;
+  MAP$B = Plus[I$VARIABLES$CANONICAL,Times[I$PARAMETER,FIELD]] ;
+  List[MAP$A,MAP$B]
+] ;
 (* ################################################################################################################################################################ *)
 (* MAKE (MAP) *)
 (* ################################################################################################################################################################ *)
