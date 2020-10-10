@@ -2054,7 +2054,9 @@ I$RULE$FORTRAN = List[
   Rule["ArcTan","ATAN"],
   Rule["ArcCot","ACOT"],
   Rule["Sec","SEC"],
-  Rule["Csc","CSC"]
+  Rule["Csc","CSC"],
+  Rule["Sech","SECH"],
+  Rule["Csch","CSCH"]
 ] ;
 (* ################################################################################################################################################################ *)
 (* FORTRAN (LINE) *)
@@ -2179,7 +2181,10 @@ I$FORTRAN$SET[RULE_:List[]][I$SET[LEFT_,RIGHT_]] := Catch[
       RHS,
       List[
         Rule["SEC(",StringTemplate["1._``/COS("][I$FORTRAN$REAL$KIND]],
-        Rule["CSC(",StringTemplate["1._``/SIN("][I$FORTRAN$REAL$KIND]]]
+        Rule["CSC(",StringTemplate["1._``/SIN("][I$FORTRAN$REAL$KIND]],
+        Rule["SECH(",StringTemplate["1._``/COSH("][I$FORTRAN$REAL$KIND]],
+        Rule["CSCH(",StringTemplate["1._``/SINH("][I$FORTRAN$REAL$KIND]]
+      ]
     ] ;
     RHS = StringReplace[RHS,Rule[StringExpression[".",Repeated["0"],"_"],"._"]] ;
     RHS = StringReplace[RHS,Rule[StringExpression[".",Repeated["0"],"E"],".E"]] ;
@@ -3261,6 +3266,66 @@ I$POTENTIAL$PLANE[                (* -- S-DEPENDENT STRAIGHT MULTIPOLE POTENTIAN
   GreaterEqual[MAX,0]
 ] ;
 (* ################################################################################################################################################################ *)
+(* STRAIGHT MULTIPOLE VECTOR POTENTIAL (3D) *)
+(* ################################################################################################################################################################ *)
+ClearAll[I$POTENTIAL$PLANE$3D] ;
+I$POTENTIAL$PLANE$3D::usage = "
+I$POTENTIAL$PLANE$3D[MIN,MAX,KNL,KSL] -- generate s-dependent vector potential for multipole with leading degree <MIN> (integer) up to degree <MAX> (integer) with n-amplitude <KNL> (symbol) and s-amplitude <KSL> (symbol)
+" ;
+I$POTENTIAL$PLANE$3D[             (* -- MULTIPOLE VECTOR POTENTIAL *)
+  MIN_,                           (* -- LEADING ORDER DEGREE (INTEGER) *)
+  MAX_,                           (* -- TRUNCATION DEGREE (INTEGER) *)
+  KNL_,                           (* -- N-AMPLITUDE (SYMBOL) *)
+  KSL_                            (* -- S-AMPLITUDE (SYMBOL) *)
+][
+  CANONICAL_                      (* -- LIST OF CANONICAL VARIABLES (LIST OF SYMBOLS) *)
+] := Block[
+  {Q1,P1,Q2,P2,Q3,P3,ORDER,RADIUS,ANGLE,FUNCTION,PSI,A$R,A$X,A$Y,A$Z},
+  {Q1,P1,Q2,P2,Q3,P3} = CANONICAL ;
+  ORDER = Subtract[MIN,Plus[1,1]] ;
+  FUNCTION = Function[
+    Times[
+      D[Plus[KNL[I$PARAMETER],Times[I,KSL[I$PARAMETER]]],List[I$PARAMETER,Slot[1]]],
+	  Divide[Subtract[0,I],MIN],
+	  Power[Subtract[0,1],Slot[1]],
+	  Factorial[MIN],
+	  Divide[1,Power[Plus[1,1],Times[Plus[1,1],Slot[1]]]],
+	  Divide[1,Factorial[Slot[1]]],
+	  Divide[1,Factorial[Plus[Slot[1],MIN]]],
+	  Power[RADIUS,Plus[Times[Plus[1,1],Slot[1]],MIN]]
+    ]
+  ] ;
+  PSI = Total[Map[FUNCTION,Range[0,MAX]]] ;
+  A$R = ReplaceAll[ComplexExpand[I*RADIUS/MIN*D[PSI,I$PARAMETER]*Exp[I*MIN*ANGLE]],Rule[I,0]] ;
+  A$X = TrigExpand[A$R*Cos[ANGLE]] /. Cos[ANGLE] -> Q1/RADIUS /. Sin[ANGLE] -> Q2/RADIUS /. RADIUS -> Sqrt[Q1^2+Q2^2] ;
+  A$X = Collect[A$X,Derivative[_][__][__],Expand] ;
+  A$Y = TrigExpand[A$R*Sin[ANGLE]] /. Cos[ANGLE] -> Q1/RADIUS /. Sin[ANGLE] -> Q2/RADIUS /. RADIUS -> Sqrt[Q1^2+Q2^2] ;
+  A$Y = Collect[A$Y,Derivative[_][__][__],Expand] ;
+  A$Z = ReplaceAll[ComplexExpand[-I*RADIUS/MIN*D[PSI,RADIUS]*Exp[I*MIN*ANGLE]],Rule[I,0]] ;
+  A$Z = TrigExpand[A$Z] /. Cos[ANGLE] -> Q1/RADIUS /. Sin[ANGLE] -> Q2/RADIUS /. RADIUS -> Sqrt[Q1^2+Q2^2] ;
+  A$Z = Collect[A$Z,Derivative[_][__][__],Expand] ;
+  A$Z = Collect[A$Z,List[KNL[_],KSL[_]],Expand] ;
+  List[A$X,A$Y,A$Z]
+] ;
+(* ################################################################################################################################################################ *)
+(* GRADIENT PROFILE (HYPERTAN) *)
+(* ################################################################################################################################################################ *)
+ClearAll[I$GRADIENT$PROFILE] ;
+I$GRADIENT$PROFILE::usage = "
+I$GRADIENT$PROFILE[LENGTH,CENTER,STIFFNESS] -- generate hypertan gradient profile for given effective length <LENGHT> (real), element center <CENTER> (real) and profile stiffness <STIFFNESS> (real)
+" ;
+I$GRADIENT$PROFILE[               (* -- FIELD GRAIENT PROFILE (HYPERTAN) *)
+  LENGTH_,                        (* -- MAGNETIC LENGTH *)
+  CENTER_,                        (* -- CENTER POSITION *)
+  STIFFNESS_                      (* -- STIFFNESS *)
+] := Divide[
+  Subtract[
+    Tanh[Times[STIFFNESS,Subtract[I$PARAMETER,Subtract[CENTER,Divide[LENGTH,Plus[1,1]]]]]],
+    Tanh[Times[STIFFNESS,Subtract[I$PARAMETER,Plus[CENTER,Divide[LENGTH,Plus[1,1]]]]]]
+  ],
+  Plus[1,1]
+] ;
+(* ################################################################################################################################################################ *)
 (* FIELD (STRAIGHT POTENTIAL) *)
 (* ################################################################################################################################################################ *)
 ClearAll[I$FIELD$PLANE] ;
@@ -3667,7 +3732,7 @@ I$DRQ2$HAMILTONIAN[FACTOR_List:List[Infinity,1]][CANONICAL_] := Block[
   {Q1,P1,Q2,P2,Q3,P3},
   {Q1,P1,Q2,P2,Q3,P3} = CANONICAL ;
   Times[Q1,I$DRIF$HAMILTONIAN[FACTOR][List[Q1,P1,Q2,P2,Q3,P3]]]
-] 
+] ;
 ClearAll[I$DRQ3$HAMILTONIAN] ;
 I$DRQ3$HAMILTONIAN::usage = "
 I$DRQ3$HAMILTONIAN[List[RFG,RFB]] -- dynamic Q3 rotation hamiltonian in free space for given relativistic factors <RFG> and <RFB>

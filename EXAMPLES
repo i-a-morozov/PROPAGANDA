@@ -26,8 +26,9 @@ EXAMPLE-24 -- (FORTRAN) FMA indicator from Taylor map
 EXAMPLE-25 -- (FORTRAN) FMA indicator (SIGNAL library)
 EXAMPLE-26 -- Lattice generation
 EXAMPLE-27 -- Element library
-EXAMPLE-28 -- Non-autonomous Hamiltonian (extended phase space)
-EXAMPLE-29 -- Non-separable Hamiltonian (double extended phase space)
+EXAMPLE-28 -- Non-autonomous Hamiltonian (extended)
+EXAMPLE-29 -- Non-separable Hamiltonian (double extended)
 EXAMPLE-30 -- (FORTRAN) FODO ring (double extended)
+EXAMPLE-31 -- (FORTRAN) FODO ring (smooth gradient)
 
-09_10_2020
+10_10_2020
