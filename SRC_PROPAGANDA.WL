@@ -1074,7 +1074,7 @@ I$PERIODIC$ORBIT[                 (* -- PERIODIC ORBIT SEARCH (NEWTON) *)
   (* DUMMY ARGUMENT *)
   ARGUMENT = Array[VARIABLE,Length[First[POINT]]] ;
   (* PERFORM SEARCH *)
-  DATA = I$PARALLEL$MAP[
+  DATA = Map[
     Function[
         ReplaceAll[
         ARGUMENT,
@@ -1114,7 +1114,7 @@ I$PERIODIC$ORBIT[                 (* -- PERIODIC ORBIT SEARCH (NEWTON) *)
   ] ;
   (* PRIME PERIOD *)
   POINT = DATA ;
-  DATA = I$PARALLEL$MAP[Function[NestList[ITERATOR,Slot[1],PERIOD]],POINT] ;
+  DATA = Map[Function[NestList[ITERATOR,Slot[1],PERIOD]],POINT] ;
   DATA = Select[DATA,Function[SameQ[Plus[1,1],Count[Chop[Subtract[Slot[1],ConstantArray[First[Slot[1]],Length[Slot[1]]]],ERROR],ConstantArray[0,Length[ARGUMENT]]]]]] ;
   DATA = Map[SortBy[Norm],DATA] ;
   DATA = SortBy[Transpose[List[Map[Composition[Norm,First],DATA],DATA]],First] ;
@@ -1124,7 +1124,7 @@ I$PERIODIC$ORBIT[                 (* -- PERIODIC ORBIT SEARCH (NEWTON) *)
     DATA,
     DATA = Map[First,Last[Transpose[DATA]]] ;
     DATA = Map[Function[Flatten[List[First[Slot[1]],KNOB,Rest[Slot[1]],DERIVATIVE]]],DATA] ;
-    I$PARALLEL$MAP[Function[NestList[MAP,Slot[1],PERIOD]],DATA]
+    Map[Function[NestList[MAP,Slot[1],PERIOD]],DATA]
   ]
 ] /; And[
   GreaterEqual[PERIOD,1],
