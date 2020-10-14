@@ -2707,7 +2707,7 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
     (* APERTURE *)
     If[
       SameQ[OptionValue["APERTURE"],Null],
-      APERTURE = Thread[Greater[Take[I$VARIABLES$CANONICAL,Min[List[I$DIMENSION$CANONICAL,4]]],0.1]] ;
+      APERTURE = Thread[Greater[Take[I$VARIABLES$CANONICAL,Min[List[I$DIMENSION$CANONICAL,Plus[1,1,1,1]]]],1.0]] ;
       APERTURE = Map[
         Function[I$FORTRAN$CHECK[Slot[1],APERTURE,I$TABLE["ELEMENT"][NAME,"GLOBAL"]]],
         Range[I$TABLE["ELEMENT"][NAME,"LENGTH"]]
