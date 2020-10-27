@@ -11,7 +11,7 @@ Get["MaTeX`"] ;                     (* -- LOAD MATEX PACKAGE *)
 (* ################################################################################################################################################################ *)
 (* SYSTEM COMPILE OPTIONS  *)
 (* ################################################################################################################################################################ *)
-Compiler`$CCompilerOptions = List[Rule["SystemCompileOptions","-O3  -ffast-math -march=native"]] ;
+Compiler`$CCompilerOptions = List[Rule["SystemCompileOptions","-O3 -ffast-math -march=native"]] ;
 (* ################################################################################################################################################################ *)
 (* PARALLEL MAP *)
 (* ################################################################################################################################################################ *)
@@ -22,7 +22,7 @@ I$PARALLEL$MAP[FUNCTION,LIST] -- (function) apply function <FUNCTION> (function)
 Options[I$PARALLEL$MAP] = List[
   Rule["METHOD","FinestGrained"]  (* -- METHOD *)
 ] ;
-I$PARALLEL$MAP[                   (* -- CUSTOM PARALLEL MAP FUNCTION *)
+I$PARALLEL$MAP[                   (* -- (CUSTOM) PARALLEL MAP FUNCTION *)
   FUNCTION_,                      (* -- FUNCTION TO APPLY (FUNCTION) *)
   LIST_List,                      (* -- ARGUMENT (LIST) *)
   OPTIONS:OptionsPattern[]        (* -- OPTION(S) *)
@@ -34,9 +34,9 @@ I$PARALLEL$MAP[                   (* -- CUSTOM PARALLEL MAP FUNCTION *)
 (* ################################################################################################################################################################ *)
 ClearAll[I$INSERT] ;
 I$INSERT::usage = "
-I$INSERT[LIST,DATA,MASK] -- (function) insert list of elements <DATA> (list) into list <LIST> (list), inserted elements appear according to list of positions <MASK> (list of integers)
+I$INSERT[LIST,DATA,MASK] -- (function) insert a list of elements <DATA> (list) into a list <LIST> (list), inserted elements appear according to a list of positions <MASK> (list of integers)
 " ;
-I$INSERT[                         (* -- INSERT LIST OF ELEMENTS INTO A LIST SO THAT NEW ELEMENTS APPEAR AT GIVEN POSITIONS IN THE RESULT *)
+I$INSERT[                         (* -- INSERT A LIST OF ELEMENTS INTO A LIST SO THAT NEW ELEMENTS APPEAR AT GIVEN POSITIONS IN THE RESULT *)
   LIST_List,                      (* -- INITIAL LIST OF ELEMENTS (LIST) *)
   DATA_List,                      (* -- LIST OF ELEMENTS TO INSERT (LIST) *)
   MASK_List                       (* -- LIST OF POSITIONS FOR INSERTED ELEMENTS (LIST OF INTEGERS) *)
@@ -52,7 +52,8 @@ I$INSERT[                         (* -- INSERT LIST OF ELEMENTS INTO A LIST SO T
   ]
 ] /; And[
   Apply[And,Map[IntegerQ,MASK]],
-  LessEqual[Max[MASK],Plus[Length[LIST],Length[DATA]]]
+  LessEqual[Max[MASK],Plus[Length[LIST],Length[DATA]]],
+  SameQ[Length[DeleteDuplicates[MASK]],Length[MASK]]
 ] ;
 (* ################################################################################################################################################################ *)
 (* INTEGRATOR (MAIN INITIALIZATION) *)
@@ -101,21 +102,25 @@ I$INTEGRATOR[                     (* -- INITIALIZE INTEGRATOR *)
     If[VERBOSE,Print[StringTemplate["SIGNATURE               : ``"][I$SIGNATURE]]] ;
     (* SET APERTURE FLAG (SYMBOL) *)
     I$FLAG = OptionValue["FLAG"] ;
+    If[UnsameQ[Head[I$FLAG],Symbol],Throw[$Failed]] ;
     If[VERBOSE,Print[StringTemplate["APERTURE FLAG           : ``"][I$FLAG]]] ;
     (* SET FORMAL INTEGRATION PARAMETER (SYMBOL) *)
     I$PARAMETER = OptionValue["PARAMETER"] ;
+    If[UnsameQ[Head[I$PARAMETER],Symbol],Throw[$Failed]] ;
     If[VERBOSE,Print[StringTemplate["INTEGRATION PARAMETER   : ``"][I$PARAMETER]]] ;
     (* SET CANONICAL COORDINATES ORDERING (STRING) *)
     I$ORDERING = OptionValue["ORDERING"] ;
+    If[Not[MemberQ[List["PAIRS","SECTORS"],I$ORDERING]],Throw[$Failed]] ;
     If[VERBOSE,Print[StringTemplate["PHASE SPACE ORDERING    : ``"][I$ORDERING]]] ;
     (* SET VARIABLE HEADS (LIST OF STRINGS) *)
     List[I$Q$HEAD,I$P$HEAD,I$K$HEAD,I$D$HEAD,I$F$HEAD] = List[OptionValue["QHEAD"],OptionValue["PHEAD"],OptionValue["KHEAD"],OptionValue["DHEAD"],OptionValue["FHEAD"]] ;
+    If[Not[AllTrue[List[I$Q$HEAD,I$P$HEAD,I$K$HEAD,I$D$HEAD,I$F$HEAD],StringQ]],Throw[$Failed]] ;
     If[VERBOSE,Print[StringTemplate["VARIABLE HEADS          : ``"][List[I$Q$HEAD,I$P$HEAD,I$K$HEAD,I$D$HEAD,I$F$HEAD]]]] ;
     (* SET CONFIGURATION SPACE DIMENSION (INTEGER) *)
     I$DIMENSION = DIMENSION ;
+    If[VERBOSE,Print[StringTemplate["DIMENSION               : ``"][I$DIMENSION]]] ;
     (* SET CANONICAL SPACE DIMENSION (INTEGER) *)
     I$DIMENSION$CANONICAL = Times[Plus[1,1],I$DIMENSION] ;
-    If[VERBOSE,Print[StringTemplate["DIMENSION               : ``"][I$DIMENSION]]] ;
     If[VERBOSE,Print[StringTemplate["CANONICAL DIMENSION     : ``"][I$DIMENSION$CANONICAL]]] ;
     (* SET CANONICAL VARIABLES (LIST OF SYMBOLS ACCORDING TO SELECTED ORDERING) *)
     I$VARIABLES$CANONICAL = Composition[
@@ -155,6 +160,7 @@ I$INTEGRATOR[                     (* -- INITIALIZE INTEGRATOR *)
     ] ;
     If[VERBOSE,Print[StringTemplate["LIST OF ORDERS          : ``"][Thread[Rule[Flatten[List[I$VARIABLES$CANONICAL,I$VARIABLES$PARAMETRIC]],I$ORDER$LIST]]]]] ;
     (* SET MAXIMUM ORDER OF GENERIC MONOMIAL (CANONICAL VARIABLES AND PARAMETERS) (INTEGER) *)
+    If[Not[MemberQ[List["SUM","MAX"],OptionValue["TRUNCATION"]]],Throw[$Failed]] ;
     I$ORDER = Which[
       SameQ[OptionValue["TRUNCATION"],"SUM"],
       Plus[CORDER,KORDER],
@@ -174,12 +180,13 @@ I$INTEGRATOR[                     (* -- INITIALIZE INTEGRATOR *)
     (* SET ALL POSSIBLE DERIVATIVES OF CANONICAL VARIABLES WITH RESPECT TO DEVIATION VARIABLES UP TO MAXIMUM ORDER <ORDER> (INTEGER) OF GENERIC MONOMIAL *)
     I$COMPONENTS = Flatten[Map[Composition[Reverse,Function[FrobeniusSolve[ConstantArray[1,I$DIMENSION$DEVIATION],Slot[1]]]],Range[I$ORDER]],1] ;
     (* FILTER DERIVATIVES BY CANONICAL VARIABLES (TOTAL CANONICAL MONOMIAL ORDER IS LESS OR EQUAL TO GIVEN CANONICAL ORDER) *)
-    I$COMPONENTS = If[UnsameQ[CORDER,0],Select[I$COMPONENTS,Function[LessEqual[Total[Take[Slot[1],I$DIMENSION$CANONICAL]],CORDER]]],I$COMPONENTS] ;
+    I$COMPONENTS = If[UnsameQ[I$ORDER$CANONICAL,0],Select[I$COMPONENTS,Function[LessEqual[Total[Take[Slot[1],I$DIMENSION$CANONICAL]],I$ORDER$CANONICAL]]],I$COMPONENTS] ;
     (* FILTER DERIVATIVES BY PARAMETERS (TOTAL PARAMETRIC MONOMIAL ORDER IS LESS OR EQUAL TO GIVEN ORDER) *)
-    I$COMPONENTS = If[And[UnsameQ[CORDER,0],UnsameQ[KORDER,0]],Select[I$COMPONENTS,Function[LessEqual[Total[Take[Slot[1],Subtract[0,I$DIMENSION$PARAMETRIC]]],KORDER]]],I$COMPONENTS] ;
+    I$COMPONENTS = If[And[UnsameQ[I$ORDER$CANONICAL,0],UnsameQ[I$ORDER$PARAMETRIC,0]],Select[I$COMPONENTS,Function[LessEqual[Total[Take[Slot[1],Subtract[0,I$DIMENSION$PARAMETRIC]]],I$ORDER$PARAMETRIC]]],I$COMPONENTS] ;
     (* FILTER DERIVATIVES BY PARAMETERS (INDIVIDUAL LIST, PAR_I^POW_J IS REMOVED IF POW_J IS GREATER OR EQUAL TO GIVEN ORDER OF PAR_I) *)
     I$COMPONENTS = Select[I$COMPONENTS,Function[Apply[And,Thread[LessEqual[Slot[1],DeleteCases[I$ORDER$LIST,0]]]]]] ;
     (* APPLY FILTER *)
+    If[Not[MemberQ[List[Symbol,Function],Head[OptionValue["FILTER"]]]],Throw[$Failed]] ;
     I$COMPONENTS = OptionValue["FILTER"][I$COMPONENTS] ;
     (* ADD COMPONENT INDEX (CANONICAL COMPONENT MARKER) TO SELECTED DERIVATIVES *)
     (* COMPONENTS STRUCTURE: {{C_1,D_1},...,{C_N,D_1},{C_1,D_2},...,{C_N,D_2},...,{C_1,D_M},...,{C_N,D_M}} *)
@@ -222,6 +229,7 @@ I$INTEGRATOR[                     (* -- INITIALIZE INTEGRATOR *)
     ClearAll[I$GENERIC$PAR$LIST] ;
     ClearAll[I$GENERIC$VAR$LIST] ;
     (* COMPONENTS FUNCTION BUILDER FROM VECTOR OF DERIVATIVES (NO CONSTANT COMPONENT, ACTS ON A LIST OF DERIVATIVES, RETURNS LIST GROUPED BY TOTAL GENERIC MONOMIAL ORDER) *)
+    ClearAll[I$MAKE$FUNCTIONS] ;
     I$MAKE$FUNCTIONS = Values[GroupBy[I$COMPONENTS,First]] ;
     I$MAKE$FUNCTIONS = Map[
       Function[
@@ -374,9 +382,9 @@ I$EXPAND[                         (* -- (SERIES) EXPAND EXPRESSION *)
   EXPRESSION_                     (* -- EXPRESSION TO EXPAND *)
 ] := Catch[
   Block[
-      {PARAMETER,RULE},
-      RULE = Dispatch[Thread[Rule[VARIABLE,Times[PARAMETER,VARIABLE]]]] ;
-      ReplaceAll[Normal[Series[ReplaceAll[EXPRESSION,RULE],List[PARAMETER,0,DEGREE]]],Rule[PARAMETER,1]]
+    {PARAMETER,RULE},
+    RULE = Dispatch[Thread[Rule[VARIABLE,Times[PARAMETER,VARIABLE]]]] ;
+    ReplaceAll[Normal[Series[ReplaceAll[EXPRESSION,RULE],List[PARAMETER,0,DEGREE]]],Rule[PARAMETER,1]]
   ]
 ] /; And[
   GreaterEqual[DEGREE,0],
@@ -395,12 +403,55 @@ I$EXPAND[                         (* -- (SERIES) EXPAND EXPRESSION ACCORDING TO 
   ] ;
   If[
     UnsameQ[List[],Intersection[I$VARIABLES$DEVIATION,I$VARIABLES$PARAMETRIC]],
-	  LIST = DeleteCases[Transpose[List[I$ORDER$LIST,I$VARIABLES$DEVIATION]],List[_,X_]/; MemberQ[I$VARIABLES$CANONICAL,X]] ;
+	LIST = DeleteCases[Transpose[List[I$ORDER$LIST,I$VARIABLES$DEVIATION]],List[_,X_]/; MemberQ[I$VARIABLES$CANONICAL,X]] ;
     SERIES = I$EXPAND[I$ORDER$PARAMETRIC,Last[Transpose[LIST]],SERIES] ;
     SERIES = Fold[Composition[Apply[I$EXPAND],Reverse,List],SERIES,LIST] ;
   ] ;
   Collect[SERIES,I$VARIABLES$CANONICAL]
 ] ;
+(* ################################################################################################################################################################ *)
+(* COMPOSE CANONICAL MAPS *)
+(* ################################################################################################################################################################ *)
+ClearAll[I$COMPOSE] ;
+Options[I$COMPOSE] = List[
+  Rule["LINEAR",True],            (* -- LINEAR FLAG (IF 'True' ALL MAPS ARE ASSUMED TO BE LINEAR) *)
+  Rule["DEGREE",1],               (* -- EXPANSION DEGREE FOR NONLINEAR CASE (USE NEGATIVE ONE IF NO EXPANSION IS REQUIRED) *)
+  Rule["SIMPLIFY",Identity]       (* -- SIMPLIFICATION FUNCTION *)
+] ;
+I$COMPOSE::usage = "
+I$COMPOSE[LIST] -- compose list of canonical maps <LIST> (list)
+" ;
+I$COMPOSE[                        (* -- COMPOSE LIST OF CANONICAL MAPS *)
+  LIST_List,                      (* -- LIST OF CANONICAL MAPS TO COMPOSE *)
+  OPTIONS:OptionsPattern[]        (* -- OPTION(S) *)
+] := Catch[
+  Block[
+    {MATRIX,MAP,RESULT,LOOP},
+    If[
+      OptionValue["LINEAR"],
+      MATRIX = D[LIST,List[I$VARIABLES$CANONICAL]] ;
+      MATRIX = Reverse[MATRIX] ;
+      MATRIX = Apply[Dot,MATRIX] ;
+      RESULT = Dot[MATRIX,I$VARIABLES$CANONICAL] ;
+      Throw[RESULT]
+    ] ;
+    MAP = LIST ;
+    MAP = Map[Apply[Function],Transpose[List[ConstantArray[I$VARIABLES$CANONICAL,Length[MAP]],MAP]]] ;
+    RESULT = I$VARIABLES$CANONICAL ;
+    Do[
+      List[
+        RESULT = Apply[Part[MAP,LOOP],RESULT] ;
+        If[
+          UnsameQ[OptionValue["DEGREE"],Subtract[0,1]],
+          RESULT = I$EXPAND[OptionValue["DEGREE"],I$VARIABLES$CANONICAL,RESULT] ;
+        ] ;
+        RESULT = OptionValue["SIMPLIFY"][RESULT] ;
+      ],
+      List[LOOP,1,Length[LIST]]
+    ] ;
+    RESULT
+  ]
+] /; Apply[And,Thread[Equal[Map[Length,LIST],I$DIMENSION$CANONICAL]]] ;
 (* ################################################################################################################################################################ *)
 (* SYMPLECTIC TEST (MATRIX) *)
 (* ################################################################################################################################################################ *)
@@ -480,7 +531,7 @@ I$DERIVATIVE[                     (* -- GENERATE VECTOR FIELD (OR MAP) FOR DERIV
 (* ################################################################################################################################################################ *)
 ClearAll[I$POISSON$BRACKET] ;
 I$POISSON$BRACKET::usage = "
-I$POISSON$BRACKET[F,G] -- compute Poisson bracket between two canonical observables <F> and <G> (functions of canonical variables)
+I$POISSON$BRACKET[F,G] -- (function) compute Poisson bracket between two canonical observables <F> and <G> (functions of canonical variables)
 " ;
 I$POISSON$BRACKET := Function[Dot[D[Slot[1],List[I$VARIABLES$CANONICAL]],I$SYMPLECTIC$MATRIX,D[Slot[2],List[I$VARIABLES$CANONICAL]]]] ;
 (* ################################################################################################################################################################ *)
@@ -488,7 +539,7 @@ I$POISSON$BRACKET := Function[Dot[D[Slot[1],List[I$VARIABLES$CANONICAL]],I$SYMPL
 (* ################################################################################################################################################################ *)
 ClearAll[I$GRADIENT$FIELD] ;
 I$GRADIENT$FIELD::usage = "
-I$GRADIENT$FIELD[HAMILTONIAN] -- compute gradient vector field for given Hamiltonian function <HAMILTONIAN> (function of canonical variables)
+I$GRADIENT$FIELD[HAMILTONIAN] -- (function) compute gradient vector field for given Hamiltonian function <HAMILTONIAN> (function of canonical variables)
 " ;
 I$GRADIENT$FIELD := Function[D[Slot[1],List[I$VARIABLES$CANONICAL]]] ;
 (* ################################################################################################################################################################ *)
@@ -496,7 +547,7 @@ I$GRADIENT$FIELD := Function[D[Slot[1],List[I$VARIABLES$CANONICAL]]] ;
 (* ################################################################################################################################################################ *)
 ClearAll[I$VECTOR$FIELD] ;
 I$VECTOR$FIELD::usage = "
-I$VECTOR$FIELD[HAMILTONIAN] -- compute Hamiltonian vector field for given Hamiltonian function <HAMILTONIAN> (function of canonical variables)
+I$VECTOR$FIELD[HAMILTONIAN] -- (function) compute Hamiltonian vector field for given Hamiltonian function <HAMILTONIAN> (function of canonical variables)
 " ;
 I$VECTOR$FIELD := Function[Dot[I$SYMPLECTIC$MATRIX,I$GRADIENT$FIELD[Slot[1]]]] ;
 (* ################################################################################################################################################################ *)
@@ -614,49 +665,6 @@ I$MAKE$COMPONENTS[                (* -- MAKE CANONICAL COMPONENTS FROM GIVEN STA
     ZERO
   ]
 ] /; SameQ[Length[STATE],I$DIMENSION$VARIABLES] ;
-(* ################################################################################################################################################################ *)
-(* COMPOSE CANONICAL MAPS *)
-(* ################################################################################################################################################################ *)
-ClearAll[I$COMPOSE] ;
-Options[I$COMPOSE] = List[
-  Rule["LINEAR",True],            (* -- LINEAR FLAG (IF 'True' ALL MAPS ARE ASSUMED TO BE LINEAR) *)
-  Rule["DEGREE",1],               (* -- EXPANSION DEGREE FOR NONLINEAR CASE (USE NEGATIVE ONE IF NO EXPANSION IS REQUIRED) *)
-  Rule["SIMPLIFY",Identity]       (* -- SIMPLIFICATION FUNCTION *)
-] ;
-I$COMPOSE::usage = "
-I$COMPOSE[LIST] -- compose list of canonical maps <LIST> (list)
-" ;
-I$COMPOSE[                        (* -- COMPOSE LIST OF PHASE SPACE MAPS *)
-  LIST_List,                      (* -- LIST OF CANONICAL MAPS TO COMPOSE *)
-  OPTIONS:OptionsPattern[]        (* -- OPTION(S) *)
-] := Catch[
-  Block[
-    {MATRIX,MAP,RESULT,LOOP},
-    If[
-      OptionValue["LINEAR"],
-      MATRIX = D[LIST,List[I$VARIABLES$CANONICAL]] ;
-      MATRIX = Reverse[MATRIX] ;
-      MATRIX = Apply[Dot,MATRIX] ;
-      RESULT = Dot[MATRIX,I$VARIABLES$CANONICAL] ;
-      Throw[RESULT]
-    ] ;
-    MAP = LIST ;
-    MAP = Map[Apply[Function],Transpose[List[ConstantArray[I$VARIABLES$CANONICAL,Length[MAP]],MAP]]] ;
-    RESULT = I$VARIABLES$CANONICAL ;
-    Do[
-      List[
-        RESULT = Apply[Part[MAP,LOOP],RESULT] ;
-        If[
-          UnsameQ[OptionValue["DEGREE"],Subtract[0,1]],
-          RESULT = I$EXPAND[OptionValue["DEGREE"],I$VARIABLES$CANONICAL,RESULT] ;
-        ] ;
-        RESULT = OptionValue["SIMPLIFY"][RESULT] ;
-      ],
-      List[LOOP,1,Length[LIST]]
-    ] ;
-    RESULT
-  ]
-] /; Apply[And,Thread[Equal[Map[Length,LIST],I$DIMENSION$CANONICAL]]] ;
 (* ################################################################################################################################################################ *)
 (* GENERATE NDSOLVE EQUATIONS FOR GIVEN TOTAL VECTOR FIELD (I.E. WITH DERIVATIVES) *)
 (* ################################################################################################################################################################ *)
@@ -1220,40 +1228,40 @@ I$TABLE$LOAD[                     (* -- LOAD SELECTED TABLE *)
 (* ################################################################################################################################################################ *)
 ClearAll[I$TABLE$INFO] ;
 I$TABLE$INFO::usage = "
-I$TABLE$INFO[TABLE] -- print table <TABLE> (string) info (undefined)
-I$TABLE$INFO[TABLE,KEY] -- print <KEY> (string) info from table <TABLE> (undefined)
+I$TABLE$INFO[TABLE] -- print table <TABLE> (string) info
+I$TABLE$INFO[TABLE,KEY] -- print <KEY> (string) info from table <TABLE>
 " ;
 I$TABLE$INFO[                     (* -- PRINT INFO FOR GIVEN TABLE *)
   TABLE_String                    (* -- TABLE (STRING) *)
 ] := Catch[
-    Undefined
+    Keys[I$TABLE[TABLE]]
 ] ;
 I$TABLE$INFO[                     (* -- PRINT INFO FOR GIVEN TABLE AND KEY *)
   TABLE_String,                   (* -- TABLE (STRING) *)
   KEY_String                      (* -- TABLE (STRING) *)
 ] := Catch[
-  Undefined
+  Keys[I$TABLE[TABLE][KEY]]
 ] ;
+(* ################################################################################################################################################################ *)
+(* MAKE (DOUBLE STEP) *)
+(* ################################################################################################################################################################ *)
 ClearAll[I$MAKE$DOUBLE$STEP] ;
 I$MAKE$DOUBLE$STEP::usage = "
 I$MAKE$DOUBLE$STEP[HAMILTONIAN] -- generate maps for double extended phase space integration for given normal phase space hamiltonian <HAMILTONIAN>
 " ;
-(* ################################################################################################################################################################ *)
-(* MAKE (DOUBLE STEP) *)
-(* ################################################################################################################################################################ *)
 I$MAKE$DOUBLE$STEP[               (* -- GENERATE MAPS FOR DOUBLE EXTENDED PHASE SPACE INTEGRATION *)
   HAMILTONIAN_                    (* -- HAMILTONIAN FUNCTION (EXPRESSION) *)
 ] := Block[
-  {Q$LIST,P$LIST,X$LIST,Y$LIST,FUNCTION,FIELD,MAP$A,MAP$B},
+  {Q$LIST,P$LIST,X$LIST,Y$LIST,FUNCTION,FIELD$A,FIELD$B,MAP$A,MAP$B},
   Q$LIST = Take[I$VARIABLES$CANONICAL$Q,+Divide[I$DIMENSION,Plus[1,1]]] ;
   P$LIST = Take[I$VARIABLES$CANONICAL$P,+Divide[I$DIMENSION,Plus[1,1]]] ;
   X$LIST = Take[I$VARIABLES$CANONICAL$Q,-Divide[I$DIMENSION,Plus[1,1]]] ;
   Y$LIST = Take[I$VARIABLES$CANONICAL$P,-Divide[I$DIMENSION,Plus[1,1]]] ;
   FUNCTION = Apply[Function,List[Flatten[List[Q$LIST,P$LIST]],HAMILTONIAN]] ;
-  FIELD = I$VECTOR$FIELD[Apply[FUNCTION,Flatten[List[Q$LIST,Y$LIST]]]] ;
-  MAP$A = Plus[I$VARIABLES$CANONICAL,Times[I$PARAMETER,FIELD]] ;
-  FIELD = I$VECTOR$FIELD[Apply[FUNCTION,Flatten[List[X$LIST,P$LIST]]]] ;
-  MAP$B = Plus[I$VARIABLES$CANONICAL,Times[I$PARAMETER,FIELD]] ;
+  FIELD$A = I$VECTOR$FIELD[Apply[FUNCTION,Flatten[List[Q$LIST,Y$LIST]]]] ;
+  MAP$A = Plus[I$VARIABLES$CANONICAL,Times[I$PARAMETER,FIELD$A]] ;
+  FIELD$B = I$VECTOR$FIELD[Apply[FUNCTION,Flatten[List[X$LIST,P$LIST]]]] ;
+  MAP$B = Plus[I$VARIABLES$CANONICAL,Times[I$PARAMETER,FIELD$B]] ;
   List[MAP$A,MAP$B]
 ] ;
 (* ################################################################################################################################################################ *)
@@ -1490,10 +1498,10 @@ I$EVALUATE$MAP[                   (* -- DERECT MAP EVALUATION *)
     MAP = Map[Function[Apply[Function,List[I$VARIABLES,Slot[1]]]],MAP] ;
     RESULT = INITIAL ;
     Do[
-     Set[RESULT,Apply[Part[MAP,LOOP],RESULT]],
-     List[LOOP,1,Length[MAP]]
-     ] ;
-     RESULT
+      Set[RESULT,Apply[Part[MAP,LOOP],RESULT]],
+      List[LOOP,1,Length[MAP]]
+    ] ;
+    RESULT
   ]
 ] ;
 (* ################################################################################################################################################################ *)
@@ -2532,6 +2540,17 @@ I$FORTRAN$TEST[                   (* -- CONVERT TEST *)
   ToUpperCase[StringJoin["(","(",StringDrop[LEFT,3],")",HEAD,"(",StringDrop[RIGHT,3],")",")"]]
 ] ;
 (* ################################################################################################################################################################ *)
+(* FORTRAN (EXPRESSION) *)
+(* ################################################################################################################################################################ *)
+ClearAll[I$FORTRAN$EXPRESSION] ;
+I$FORTRAN$EXPRESSION::usage = "
+I$FORTRAN$EXPRESSION[EXPRESSION,GLOBAL] -- convert given expression WM <EXPRESSION> with element global constants <GLOBAL> (list of symbols) to FORTRAN
+" ;
+I$FORTRAN$EXPRESSION[             (* -- CONVERT TEST *)
+  EXPRESSION_,                    (* -- TEST (WM) *)
+  GLOBAL_List                     (* -- GLOBAL LIST *)
+] := StringTake[I$FORTRAN$TEST[Greater[EXPRESSION,0],GLOBAL],List[3,-10]] ;
+(* ################################################################################################################################################################ *)
 (* FORTRAN (CHECK) *)
 (* ################################################################################################################################################################ *)
 ClearAll[I$FORTRAN$CHECK] ;
@@ -2932,18 +2951,6 @@ I$FORTRAN$LATTICE[                (* -- GENERATE FORTRAN LATTICE FILE *)
           RUN = StringDelete[StringReplace[ToString[Map[I$FORTRAN$REAL,N[RUN,I$FORTRAN$REAL$PRECISION]]],I$RULE$FORTRAN]," "] ;
           PARAMETER = StringDelete[StringReplace[ToString[Map[I$FORTRAN$REAL,N[PARAMETER,I$FORTRAN$REAL$PRECISION]]],I$RULE$FORTRAN]," "] ;
           RULE = StringDelete[StringReplace[ToString[Map[I$FORTRAN$REAL,N[RULE,I$FORTRAN$REAL$PRECISION]]],I$RULE$FORTRAN]," "] ;
-          (*
-          FLAG = StringJoin[StringJoin["T=",FLAG,","],"&\n"] ;
-          FLAG = I$FORTRAN$SPLIT[FLAG] ;
-          LENGTH = StringJoin[StringJoin["MAX_STEP_LENGTH=",LENGTH,","],"&\n"] ;
-          LENGTH = I$FORTRAN$SPLIT[LENGTH] ;
-          RUN = StringJoin[StringJoin["LENGTH=",RUN,","],"&\n"] ;
-          RUN = I$FORTRAN$SPLIT[RUN] ;
-          PARAMETER = StringJoin[StringJoin["G=",PARAMETER,","],"&\n"] ;
-          PARAMETER = I$FORTRAN$SPLIT[PARAMETER] ;
-          RULE = StringJoin[StringJoin["F=",RULE,","],"&\n"] ;
-          RULE = I$FORTRAN$SPLIT[RULE] ;
-          *)
           FLAG = StringJoin["T=",FLAG,","] ;
           FLAG = I$FORTRAN$SPLIT[FLAG] ;
           FLAG = StringJoin[FLAG,"&\n"] ;
@@ -4407,12 +4414,13 @@ I$IMPORT$TFS[                     (* -- IMPORT TFS FILE *)
 (* ################################################################################################################################################################ *)
 ClearAll[I$MAKE$LAT] ;
 I$MAKE$LAT::usage = "
-I$MAKE$LAT[NAME,TABLE,MASK] -- generate lattice file <NAME>.lat for given output name <NAME> (string), twiss table data <TABLE> and type rules <MASK>
+I$MAKE$LAT[NAME,TABLE,MASK] -- (madx) generate lattice file <NAME>.lat for given output name <NAME> (string), twiss table data <TABLE> and type rules <MASK>
+I$MAKE$LAT[NAME,SDDS] -- (elegant) generate lattice file <NAME>.lat for given output name <NAME> (string) and elegant parameter file name <SDDS>
 " ;
 Options[I$MAKE$LAT] = List[
   Rule["RENAME",List[]]           (* -- RENAME RULES FOR TYPES (LIST OF STRING RULES), E.G. List["QUADRUPOLE","QUAD"] *)
 ] ;
-I$MAKE$LAT[                       (* -- MAKE LATTICE FILES (USE Get[] TO LOAD <NAME>.lin AND <NAME>.def) *)
+I$MAKE$LAT[                       (* -- MAKE LATTICE FILE (MADX) *)
   NAME_String,                    (* -- FILE NAME WITHOUT EXTENSION (STRING) *)
   TABLE_Association,              (* -- TABLE (ASSOCIATION), OUTPUT OF I$IMPORT$TFS[] FUNCTION *)
   MASK_Association,               (* -- TYPE RULES (LIST FOR EACH TYPE IN TABLE) *)
@@ -4484,6 +4492,30 @@ I$MAKE$LAT[                       (* -- MAKE LATTICE FILES (USE Get[] TO LOAD <N
       Association[Rule["LINE",LINE]]
     ] ;
     Put[N[DEFINITION],StringTemplate["`1`.lat"][NAME]] ;
+    StringTemplate["`1`.lat"][NAME]
+  ]
+] ;
+I$MAKE$LAT[                       (* -- MAKE LATTICE FILE (ELEGANT) *)
+  NAME_String,                    (* -- FILE NAME WITHOUT EXTENSION (STRING) *)
+  SDDS_String                     (* -- ELEGANT PARAMETER FILE NAME (STRING) *)
+] := Catch[
+  Block[
+    {FILE,TABLE,ELEMENT,PARAMETER,VALUE,TYPE,LINE,LEGEND,DEFINITION,LATTICE},
+    TABLE = Drop[Import[SDDS,"Table"],10] ;
+    TABLE = SplitBy[TABLE,First] ;
+    TABLE = Map[Composition[Most,Transpose],TABLE] ;
+    TABLE = Cases[TABLE,RuleDelayed[List[List[ELEMENT_,___],PARAMETER_,VALUE_,List[TYPE_,___]],List[ELEMENT,TYPE,PARAMETER,VALUE]]] ;
+    LINE = Rule["LINE",Map[First,TABLE]] ;
+    TABLE = DeleteDuplicates[TABLE] ;
+    LEGEND = DeleteDuplicatesBy[TABLE,Composition[First,Rest]] ;
+    LEGEND = Cases[LEGEND,RuleDelayed[List[_,TYPE_,PARAMETER_,_],Rule[TYPE,List[PARAMETER,N[Length[PARAMETER]]]]]] ;
+    LEGEND = Rule["LEGEND",Association[LEGEND]] ;
+    ELEMENT = Rule["ELEMENT",Map[First,TABLE]] ;
+    DEFINITION = TABLE ;
+    DEFINITION = Cases[DEFINITION,RuleDelayed[List[ELEMENT_,TYPE_,_,List[VALUE__]],Rule[ELEMENT,List[TYPE,VALUE]]]] ;
+    DEFINITION = Rule["DEFINITION",Association[DEFINITION]] ;
+    LATTICE = Association[List[LEGEND,ELEMENT,DEFINITION,LINE]] ;
+    Put[N[LATTICE],StringTemplate["`1`.lat"][NAME]] ;
     StringTemplate["`1`.lat"][NAME]
   ]
 ] ;
@@ -4621,7 +4653,7 @@ I$LINE[                           (* -- INITIAL LINES GENERATION *)
     POINT = N[Chop[Transpose[Map[Function[N[CirclePoints[List[Slot[1],0.0],LENGTH]]],Reverse[Range[RADIUS,DISTANCE,Subtract[0,DISTANCE]]]]]]] ;
     ANGLE = Map[Composition[Apply[ArcTan],Last],POINT] ;
     ANGLE = Mod[ANGLE,Times[2,Pi]] ;
-    First[Transpose[SortBy[Transpose[List[POINT,ANGLE]],Last]]]   
+    First[Transpose[SortBy[Transpose[List[POINT,ANGLE]],Last]]]
   ]
 ] ;
 (* ################################################################################################################################################################ *)
@@ -4687,7 +4719,7 @@ I$APERTURE$SEARCH[                (* -- APERTURE SEARCH *)
       INITIAL
     ] ;
     LIST = Map[Function[If[SameQ[Head[Slot[1]],List],Last[Slot[1]],Subtract[Slot[1],1]]],LIST] ;
-    RESULT = MapThread[Part,List[Pick[INITIAL,Unitize[LIST],1],DeleteCases[LIST,0]]] ;    
+    RESULT = MapThread[Part,List[Pick[INITIAL,Unitize[LIST],1],DeleteCases[LIST,0]]] ;
     RESULT
   ]
 ] ;
@@ -4812,7 +4844,7 @@ I$APERTURE$REFINE[                (* -- REFINE DA *)
     LOOP+=1 ;
     ARGUMENT = DIRECTION[RADIUS] ;
   ] ;
-  FUN[OUT]      
+  FUN[OUT]
 ] ;
 (* ################################################################################################################################################################ *)
 (* DA POLYGON AREA *)
@@ -4825,3 +4857,48 @@ I$POLYGON$AREA[                   (* -- DA AREA *)
   SIGNATURE_,                     (* -- SIGNATURE *)
   DATA_                           (* -- DA DATA *)
 ] := Area[Polygon[Map[Function[Pick[Slot[1],SIGNATURE,1]],DATA]]] ;
+(* ################################################################################################################################################################ *)
+(* COMPLETION (UNFINISHED) *)
+(* ################################################################################################################################################################ *)
+ClearAll[I$COMPLETION] ;
+I$COMPLETION = Composition[FE`Evaluate,FEPrivate`AddSpecialArgCompletion] ;
+ClearAll[I$COMLETION$OPTION] ;
+I$COMLETION$OPTION[] := Block[
+  {},
+  I$COMPLETION[Rule["I$PARALLEL$MAP",List[0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$PARALLEL$MAP]],Length[Options[I$PARALLEL$MAP]]]]]]] ;
+  I$COMPLETION[Rule["I$INTEGRATOR",List[0,0,0,0,0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$INTEGRATOR]],Length[Options[I$INTEGRATOR]]]]]]] ;
+  I$COMPLETION[Rule["I$INTEGRATOR",List[0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$INTEGRATOR]],Length[Options[I$INTEGRATOR]]]]]]] ;
+  I$COMPLETION[Rule["I$INTEGRATOR",List[0,0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$INTEGRATOR]],Length[Options[I$INTEGRATOR]]]]]]] ;
+  I$COMPLETION[Rule["I$COMPOSE",List[0,Apply[Sequence,ConstantArray[Map[First,Options[I$COMPOSE]],Length[Options[I$COMPOSE]]]]]]] ;
+  I$COMPLETION[Rule["I$DERIVATIVE",List[0,Apply[Sequence,ConstantArray[Map[First,Options[I$DERIVATIVE]],Length[Options[I$DERIVATIVE]]]]]]] ;
+  I$COMPLETION[Rule["I$ORBIT",List[0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$ORBIT]],Length[Options[I$ORBIT]]]]]]] ;
+  I$COMPLETION[Rule["I$ORBIT",List[0,0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$ORBIT]],Length[Options[I$ORBIT]]]]]]] ;
+  I$COMPLETION[Rule["I$CODE",List[Apply[Sequence,ConstantArray[Map[First,Options[I$CODE]],Length[Options[I$CODE]]]]]]] ;
+  I$COMPLETION[Rule["I$COMPILE$ELEMENT",List[0,0,0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$COMPILE$ELEMENT]],Length[Options[I$COMPILE$ELEMENT]]]]]]] ;
+  I$COMPLETION[Rule["I$FORTRAN$DEFINITIONS",List[0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$FORTRAN$DEFINITIONS]],Length[Options[I$FORTRAN$DEFINITIONS]]]]]]] ;
+  I$COMPLETION[Rule["I$FORTRAN$MAP",List[0,Apply[Sequence,ConstantArray[Map[First,Options[I$FORTRAN$MAP]],Length[Options[I$FORTRAN$MAP]]]]]]] ;
+  I$COMPLETION[Rule["I$FORTRAN$SEQUENCE",List[0,Apply[Sequence,ConstantArray[Map[First,Options[I$FORTRAN$SEQUENCE]],Length[Options[I$FORTRAN$SEQUENCE]]]]]]] ;
+  I$COMPLETION[Rule["I$FORTRAN$ELEMENT",List[0,Apply[Sequence,ConstantArray[Map[First,Options[I$FORTRAN$ELEMENT]],Length[Options[I$FORTRAN$ELEMENT]]]]]]] ;
+  I$COMPLETION[Rule["I$FORTRAN$LATTICE",List[0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$FORTRAN$LATTICE]],Length[Options[I$FORTRAN$LATTICE]]]]]]] ;
+  I$COMPLETION[Rule["I$FORTRAN$PROGRAM",List[0,0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$FORTRAN$PROGRAM]],Length[Options[I$FORTRAN$PROGRAM]]]]]]] ;
+  I$COMPLETION[Rule["I$MAKE$TFS",List[0,0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$MAKE$TFS]],Length[Options[I$MAKE$TFS]]]]]]] ;
+  I$COMPLETION[Rule["I$IMPORT$TFS",List[0,Apply[Sequence,ConstantArray[Map[First,Options[I$IMPORT$TFS]],Length[Options[I$IMPORT$TFS]]]]]]] ;
+  I$COMPLETION[Rule["I$MAKE$LAT",List[0,0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$MAKE$LAT]],Length[Options[I$MAKE$LAT]]]]]]] ;
+  I$COMPLETION[Rule["I$MAKE$LAT",List[0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$MAKE$LAT]],Length[Options[I$MAKE$LAT]]]]]]] ;
+  I$COMPLETION[Rule["I$APERTURE$SEARCH",List[0,0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$APERTURE$SEARCH]],Length[Options[I$APERTURE$SEARCH]]]]]]] ;
+  I$COMPLETION[Rule["I$APERTURE$SEARCH",List[0,0,0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$APERTURE$SEARCH]],Length[Options[I$APERTURE$SEARCH]]]]]]] ;
+  I$COMPLETION[Rule["I$APERTURE$FRINGE",List[0,0,0,0,0,0,0,Apply[Sequence,ConstantArray[Map[First,Options[I$APERTURE$FRINGE]],Length[Options[I$APERTURE$FRINGE]]]]]]] ;
+] ;
+ClearAll[I$COMPLETION$RULE] ;
+I$COMPLETION$RULE[DIRECTORY_String] := Block[
+  {PATH,FILE,LIST},
+  PATH = FileNameJoin[List[NotebookDirectory[]]] ;
+  If[Not[FileExistsQ[DIRECTORY]],CreateDirectory[FileNameJoin[List[NotebookDirectory[],DIRECTORY]]]] ;
+  PATH = FileNameJoin[List[NotebookDirectory[],DIRECTORY]] ;
+  FILE = FileNameJoin[List[DIRECTORY,"I$INTEGRATOR.m"]] ;
+  LIST = List[
+    Rule["VERBOSE",List["True","False"]]
+  ] ;
+  Export[FILE,LIST] ;
+  StringTemplate["cp `1`/*.m `2`/"][PATH,FileNameJoin[List[$InstallationDirectory,"SystemFiles","Components","AutoCompletionData","Main","OptionValues"]]]
+] ;
