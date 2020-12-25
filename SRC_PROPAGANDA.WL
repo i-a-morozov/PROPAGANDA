@@ -3320,7 +3320,8 @@ I$POTENTIAL$PLANE$3D[             (* -- MULTIPOLE VECTOR POTENTIAL *)
 (* ################################################################################################################################################################ *)
 ClearAll[I$GRADIENT$PROFILE] ;
 I$GRADIENT$PROFILE::usage = "
-I$GRADIENT$PROFILE[LENGTH,CENTER,STIFFNESS] -- generate hypertan gradient profile for given effective length <LENGHT> (real), element center <CENTER> (real) and profile stiffness <STIFFNESS> (real)
+I$GRADIENT$PROFILE[LENGTH,CENTER,STIFFNESS] -- generate hypertan gradient profile for given effective length <LENGHT> (real), element center <CENTER> (real) and profile stiffness <STIFFNESS> > 1.0 (real)
+I$GRADIENT$PROFILE[LENGTH,CENTER,RATION] -- generate hypertan gradient profile for given effective length <LENGHT> (real), element center <CENTER> (real) and integral ratio <RATIO> < 1.0 (real)
 " ;
 I$GRADIENT$PROFILE[               (* -- FIELD GRAIENT PROFILE (HYPERTAN) *)
   LENGTH_,                        (* -- MAGNETIC LENGTH *)
@@ -3332,7 +3333,22 @@ I$GRADIENT$PROFILE[               (* -- FIELD GRAIENT PROFILE (HYPERTAN) *)
     Tanh[Times[STIFFNESS,Subtract[I$PARAMETER,Plus[CENTER,Divide[LENGTH,Plus[1,1]]]]]]
   ],
   Plus[1,1]
-] ;
+] /; STIFFNESS >= 1.0 ;
+I$GRADIENT$PROFILE[               (* -- FIELD GRAIENT PROFILE (HYPERTAN) *)
+  LENGTH_,                        (* -- MAGNETIC LENGTH *)
+  CENTER_,                        (* -- CENTER POSITION *)
+  RATIO_                          (* -- RATIO *)
+] := Block[
+  {STIFFNESS},
+  STIFFNESS = STIFFNESS /. First[Quiet[FindRoot[LENGTH*RATIO == 1/STIFFNESS*Log[Cosh[LENGTH*STIFFNESS]],{STIFFNESS,1.0}]]] ;
+  Divide[
+    Subtract[
+      Tanh[Times[STIFFNESS,Subtract[I$PARAMETER,Subtract[CENTER,Divide[LENGTH,Plus[1,1]]]]]],
+      Tanh[Times[STIFFNESS,Subtract[I$PARAMETER,Plus[CENTER,Divide[LENGTH,Plus[1,1]]]]]]
+    ],
+    Plus[1,1]
+  ]
+] /; RATIO < 1.0 ;
 (* ################################################################################################################################################################ *)
 (* FIELD (STRAIGHT POTENTIAL) *)
 (* ################################################################################################################################################################ *)
