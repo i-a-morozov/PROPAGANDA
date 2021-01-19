@@ -2598,6 +2598,8 @@ Options[I$FORTRAN$ELEMENT] = List[
   Rule["VARIABLES",List[]],       (* -- VARIABLES (LIST OF STRINGS) *)
   Rule["PROLOG",List[""]],        (* -- PROLOG FORTRAN CODE TO EXECUTE *)
   Rule["EPILOG",List[""]],        (* -- EPILOG FORTRAN CODE TO EXECUTE *)
+  Rule["LOOP_PROLOG",List[""]],   (* -- LOOP PROLOG FORTRAN CODE TO EXECUTE (NORMAL MODE ONLY) *)
+  Rule["LOOP_EPILOG",List[""]],   (* -- LOOP EPILOG FORTRAN CODE TO EXECUTE (NORMAL MODE ONLY) *)
   Rule["IO_PROLOG",List[""]],     (* -- IO PROLOG *)
   Rule["IO_EPILOG",List[""]],     (* -- IO EPILOG *)
   Rule["IO_UNIT","*"],            (* -- IO UNIT *)
@@ -2612,11 +2614,25 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
   OPTIONS:OptionsPattern[]        (* -- OPTION(S) *)
 ] := Catch[
   Block[
-    {DEFINITION,RULE,PROLOG,EPILOG,ONE,TWO,WEIGHT,CODE,APERTURE,CONVERGENCE,FILE},
+    {DEFINITION,RULE,PROLOG,EPILOG,LCOUNT,LLIMIT,LPROLOG,LEPILOG,ONE,TWO,WEIGHT,CODE,APERTURE,CONVERGENCE,FILE},
     DEFINITION = I$FORTRAN$DEFINITIONS["ELEMENT",NAME,Apply[Sequence,FilterRules[Flatten[List[OPTIONS,Options[I$FORTRAN$ELEMENT]]],Options[I$FORTRAN$DEFINITIONS]]]] ;
     RULE = I$FORTRAN$REPLACE["ELEMENT",NAME] ;
     PROLOG = Map[Composition[StringTemplate[" `1`\n"],StringTrim],OptionValue["PROLOG"]] ;
     EPILOG = Map[Composition[StringTemplate[" `1`\n"],StringTrim],OptionValue["EPILOG"]] ;
+    LCOUNT = 0 ;
+    LLIMIT = I$TABLE["ELEMENT"][NAME,"LENGTH"] ;
+    LPROLOG = Which[
+      SameQ[OptionValue["LOOP_PROLOG"],List[""]],
+      ConstantArray[List[""],LLIMIT],
+      True,
+      PadRight[OptionValue["LOOP_PROLOG"],LLIMIT,""]
+    ] ;
+    LEPILOG = Which[
+      SameQ[OptionValue["LOOP_EPILOG"],List[""]],
+      ConstantArray[List[""],LLIMIT],
+      True,
+      PadRight[OptionValue["LOOP_EPILOG"],LLIMIT,""]
+    ] ;
     ONE = Map[Composition[Function[StringTemplate[" !IO_PROLOG WRITE(`1`,`2`) `3`\n"][OptionValue["IO_UNIT"],OptionValue["IO_FORMAT"],Slot[1]]],StringTrim],OptionValue["IO_PROLOG"]] ;
     TWO = Map[Composition[Function[StringTemplate[" !IO_EPILOG WRITE(`1`,`2`) `3`\n"][OptionValue["IO_UNIT"],OptionValue["IO_FORMAT"],Slot[1]]],StringTrim],OptionValue["IO_EPILOG"]] ;
     (* CODE *)
@@ -2634,6 +2650,7 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
         Function[
           Block[
             {FACTOR,SEQUENCE,SUBROUTINE,INDEX,LOCAL,SET},
+            LCOUNT += 1 ;
             {FACTOR,SEQUENCE,SUBROUTINE,INDEX} = Slot[1] ;
             LOCAL = I$TABLE["ELEMENT"][NAME,"GLOBAL"] ;
             LOCAL = Dispatch[Thread[Rule[LOCAL,Array[I$GLOBAL,Length[LOCAL]]]]] ;
@@ -2650,6 +2667,7 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
               "\n",
               StringTemplate[" `1`=`1`*STEP_LENGTH(`2`)\n"][SUBROUTINE,INDEX],
               StringTemplate[" DO I=1,NUMBER_OF_STEPS(`1`),1\n"][INDEX],
+              Part[LPROLOG, LCOUNT],
               StringTemplate["  CALL `1`_SEQ_SUB(&\n"][SEQUENCE],
               StringTemplate["   S=`1`,&\n"][SUBROUTINE],
               SET,
@@ -2657,6 +2675,7 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
               "   X=X&\n",
               "  )\n",
               "  !IO_STEP WRITE(*,*) X\n",
+              Part[LEPILOG, LCOUNT],
               StringTemplate["  IF(T(`1`).AND.CHECK_`1`(G,F,X))THEN\n   X(1)=0.0_`2`\n   RETURN\n  END IF\n"][INDEX,I$FORTRAN$REAL$KIND],
               " END DO\n"
             ]
@@ -2669,6 +2688,7 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
         Function[
           Block[
             {FACTOR,SEQUENCE,SUBROUTINE,INDEX,LOCAL,SET},
+            LCOUNT += 1 ;
             {FACTOR,SEQUENCE,SUBROUTINE,INDEX} = Slot[1] ;
             LOCAL = I$TABLE["ELEMENT"][NAME,"GLOBAL"] ;
             LOCAL = Dispatch[Thread[Rule[LOCAL,Array[I$GLOBAL,Length[LOCAL]]]]] ;
@@ -3093,7 +3113,7 @@ I$FORTRAN$LOAD[                   (* -- LOAD LIBRARY *)
   FILE_,                          (* -- LIBRARY FILE NAME (WITHOUT EXTENCION) *)
   NAME_                           (* -- LOAD TO NAME *)
 ] := Block[
-  List[],
+  {},
   If[SameQ[Head[NAME],LibraryFunction],LibraryFunctionUnload[NAME]] ;
   LibraryFunctionLoad[FileNameJoin[List[I$FORTRAN$DIRECTORY,FILE]],StringJoin["TRACK_",FILE,"_sub"],List[List[Real,1,Automatic]],List[Real,1]]
 ] ;
