@@ -1,5 +1,5 @@
 (* ################################################################################################################################################################ *)
-(* PROPAGANDA, SINGLE PARTICLE NONLINEAR DYNAMICS TOOLKIT, 2017-2020, I.A.MOROZOV@INP.NSK.SU *)
+(* PROPAGANDA, SINGLE PARTICLE NONLINEAR DYNAMICS TOOLKIT, 2017-2021, I.A.MOROZOV@INP.NSK.SU *)
 (* ################################################################################################################################################################ *)
 (* INITIALIZATION *)
 (* ################################################################################################################################################################ *)
@@ -3298,43 +3298,36 @@ I$POTENTIAL$PLANE[                (* -- S-DEPENDENT STRAIGHT MULTIPOLE POTENTIAN
 (* ################################################################################################################################################################ *)
 ClearAll[I$POTENTIAL$PLANE$3D] ;
 I$POTENTIAL$PLANE$3D::usage = "
-I$POTENTIAL$PLANE$3D[MIN,MAX,KNL,KSL] -- generate s-dependent vector potential for multipole with leading degree <MIN> (integer) up to degree <MAX> (integer) with n-amplitude <KNL> (symbol) and s-amplitude <KSL> (symbol)
+I$POTENTIAL$PLANE$3D[DEGREE,CUT,KNL,KSL] -- generate s-dependent vector potential for multipole with leading degree <DEGREE> (integer) up to degree <CUT> (integer) with n-amplitude <KNL> (symbol) and s-amplitude <KSL> (symbol)
 " ;
 I$POTENTIAL$PLANE$3D[             (* -- MULTIPOLE VECTOR POTENTIAL *)
-  MIN_,                           (* -- LEADING ORDER DEGREE (INTEGER) *)
-  MAX_,                           (* -- TRUNCATION DEGREE (INTEGER) *)
-  KNL_,                           (* -- N-AMPLITUDE (SYMBOL) *)
-  KSL_                            (* -- S-AMPLITUDE (SYMBOL) *)
+  DEGREE_Integer,                 (* -- LEADING MULTIPOLE DEGREE (INTEGER) *)
+  CUT_Integer,                    (* -- TRUNCATION DEGREE (INTEGER) *)
+  KNL_Symbol,                     (* -- N-AMPLITUDE (SYMBOL) *)
+  KSL_Symbol                      (* -- S-AMPLITUDE (SYMBOL) *)
 ][
   CANONICAL_                      (* -- LIST OF CANONICAL VARIABLES (LIST OF SYMBOLS) *)
 ] := Block[
-  {Q1,P1,Q2,P2,Q3,P3,ORDER,RADIUS,ANGLE,FUNCTION,PSI,A$R,A$X,A$Y,A$Z},
+  {Q1,P1,Q2,P2,Q3,P3,RADIUS,ANGLE,AN,BN,CN,AX,AY,AZ,COUNT,PSI,PHI},
   {Q1,P1,Q2,P2,Q3,P3} = CANONICAL ;
-  ORDER = Subtract[MIN,Plus[1,1]] ;
-  FUNCTION = Function[
-    Times[
-      D[Plus[KNL[I$PARAMETER],Times[I,KSL[I$PARAMETER]]],List[I$PARAMETER,Slot[1]]],
-	  Divide[Subtract[0,I],MIN],
-	  Power[Subtract[0,1],Slot[1]],
-	  Factorial[MIN],
-	  Divide[1,Power[Plus[1,1],Times[Plus[1,1],Slot[1]]]],
-	  Divide[1,Factorial[Slot[1]]],
-	  Divide[1,Factorial[Plus[Slot[1],MIN]]],
-	  Power[RADIUS,Plus[Times[Plus[1,1],Slot[1]],MIN]]
-    ]
-  ] ;
-  PSI = Total[Map[FUNCTION,Range[0,MAX]]] ;
-  A$R = ReplaceAll[ComplexExpand[I*RADIUS/MIN*D[PSI,I$PARAMETER]*Exp[I*MIN*ANGLE]],Rule[I,0]] ;
-  A$X = TrigExpand[A$R*Cos[ANGLE]] /. Cos[ANGLE] -> Q1/RADIUS /. Sin[ANGLE] -> Q2/RADIUS /. RADIUS -> Sqrt[Q1^2+Q2^2] ;
-  A$X = Collect[A$X,Derivative[_][__][__],Expand] ;
-  A$Y = TrigExpand[A$R*Sin[ANGLE]] /. Cos[ANGLE] -> Q1/RADIUS /. Sin[ANGLE] -> Q2/RADIUS /. RADIUS -> Sqrt[Q1^2+Q2^2] ;
-  A$Y = Collect[A$Y,Derivative[_][__][__],Expand] ;
-  A$Z = ReplaceAll[ComplexExpand[-I*RADIUS/MIN*D[PSI,RADIUS]*Exp[I*MIN*ANGLE]],Rule[I,0]] ;
-  A$Z = TrigExpand[A$Z] /. Cos[ANGLE] -> Q1/RADIUS /. Sin[ANGLE] -> Q2/RADIUS /. RADIUS -> Sqrt[Q1^2+Q2^2] ;
-  A$Z = Collect[A$Z,Derivative[_][__][__],Expand] ;
-  A$Z = Collect[A$Z,List[KNL[_],KSL[_]],Expand] ;
-  List[A$X,A$Y,A$Z]
-] ;
+  AN = KSL[Q3];
+  BN = KNL[Q3] ;
+  CN = I*AN + BN ;
+  PSI = -I/DEGREE*Sum[D[CN,List[Q3,2*COUNT]]*(-1)^COUNT*Factorial[DEGREE]*RADIUS^(2*COUNT+DEGREE)/((2^(2*COUNT)*Factorial[COUNT]*Factorial[COUNT+DEGREE])),List[COUNT,0,CUT]] ;
+  AZ = - I*RADIUS/DEGREE*D[PSI,RADIUS]*Exp[I*DEGREE*ANGLE] ;
+  AZ = ComplexExpand[Re[ExpToTrig[AZ]]] ;
+  AZ = ReplaceAll[TrigExpand[AZ],List[Rule[Cos[ANGLE],Q1/RADIUS],Rule[Sin[ANGLE],Q2/RADIUS]]] ;
+  AZ = ReplaceAll[AZ,Rule[RADIUS,Sqrt[Q1^2+Q2^2]]] ;
+  AZ = Collect[AZ,_[Q3],Simplify] ;
+  PHI = Exp[I*DEGREE*ANGLE]*PSI ;
+  PHI = ComplexExpand[Re[ExpToTrig[PHI]]] ;
+  PHI = ReplaceAll[TrigExpand[PHI],List[Rule[Cos[ANGLE],Q1/RADIUS],Rule[Sin[ANGLE],Q2/RADIUS]]] ;
+  PHI = ReplaceAll[PHI,Rule[RADIUS,Sqrt[Q1^2+Q2^2]]] ;
+  PHI = Collect[PHI,_[Q3],Simplify] ;
+  AX = Collect[+Integrate[D[PHI,Q2]+D[AZ,Q1],Q3],_[Q3],Simplify] ;
+  AY = Collect[-Integrate[D[PHI,Q1]-D[AZ,Q2],Q3],_[Q3],Simplify] ;
+  ReplaceAll[List[AX,AY,AZ],Rule[Q3,I$PARAMETER]]
+] /; GreaterEqual[DEGREE,Plus[1,1]] ;
 (* ################################################################################################################################################################ *)
 (* GRADIENT PROFILE (HYPERTAN) *)
 (* ################################################################################################################################################################ *)

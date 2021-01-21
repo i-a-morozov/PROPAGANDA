@@ -29,6 +29,8 @@ EXAMPLE-27 -- Element library
 EXAMPLE-28 -- Non-autonomous Hamiltonian (extended)
 EXAMPLE-29 -- Non-separable Hamiltonian (double extended)
 EXAMPLE-30 -- (FORTRAN) FODO ring (double extended)
-EXAMPLE-31 -- (FORTRAN) FODO ring (smooth gradient)
+EXAMPLE-31 -- (FORTRAN) FODO ring (smooth quadrupole gradient)
+EXAMPLE-32 -- (FORTRAN) FODO ring (smooth sextupole gradient and fringe effects)
+EXAMPLE-33 -- (FORTRAN) Integrator signature patches
 
-10_10_2020
+21_01_2021
