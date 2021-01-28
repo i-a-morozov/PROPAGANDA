@@ -2702,6 +2702,7 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
               LOCAL,
               "\n",
               StringTemplate[" DO I=1,NUMBER_OF_STEPS(`1`),1\n"][INDEX],
+              Part[LPROLOG, LCOUNT],
               " ",
               FACTOR,
               "\n",
@@ -2737,6 +2738,7 @@ I$FORTRAN$ELEMENT[                (* -- FORTRAN CODE FOR ELEMENT *)
               "    THIS=NEXT\n",
               "   END IF\n",
               "  END DO\n",
+              Part[LEPILOG, LCOUNT],
               " END DO\n"
             ]
           ]
@@ -4671,6 +4673,7 @@ I$TRACK[                          (* -- TRACKING (INTERNAL & EXTERNAL APERTURE) 
 ClearAll[I$LINE] ;
 I$LINE::usage = "
 I$LINE[LENGTH,RADIUS,DISTANCE] -- generate <LENGTH> (integer) lines with maximal radius <RADIUS> (real) with distance between points <DISTANCE> (real)
+I$LINE[LENGTH,RX,RY,LIMIT] -- generate <LENGTH> (integer) lines with <LIMIT> (integer) points on each line and maximal horizontal radius <RX> (real) and verticle radius <RY> (real)
 " ;
 I$LINE[                           (* -- INITIAL LINES GENERATION *)
   LENGTH_,                        (* -- NUMBER OF LINES (INTEGER) *)
@@ -4684,6 +4687,25 @@ I$LINE[                           (* -- INITIAL LINES GENERATION *)
     ANGLE = Mod[ANGLE,Times[2,Pi]] ;
     First[Transpose[SortBy[Transpose[List[POINT,ANGLE]],Last]]]
   ]
+] ;
+I$LINE[                           (* -- INITIAL LINES GENERATION *)
+  LENGTH_,                        (* -- NUMBER OF LINES (INTEGER) *)
+  RX_,                            (* -- H-RADIUS (REAL) *)
+  RY_,                            (* -- V-RADIUS (REAL) *)
+  LIMIT_                          (* -- DISTANCE BETWEEN POINTS ON A LINE (REAL) *)
+] := Block[
+	{CUT},
+	CUT[{X_,Y_}] := Block[
+		{ANGLE, LIST, INDEX},
+		ANGLE = Subdivide[0, Pi, LENGTH-1] ;
+		LIST = ParametricPlot[{X*Cos[S], Y*Sin[S]}, {S, 0, Pi}, Mesh -> {ANGLE}, MeshStyle -> Red, PlotStyle -> Black] ;
+		LIST = Cases[LIST,GraphicsComplex[DATA__] :> DATA, Infinity] ;
+		INDEX = LIST[[-1, -1, 1, -1, 1]] ;
+		LIST = LIST[[1, INDEX]] ;
+		LIST = Join[LIST, {{X, 0.0}}] // Chop // N ;
+		Reverse[SortBy[LIST, First]]
+	] ;
+	Table[CUT[{RATIO*RX,RATIO*RY}],{RATIO,N[Subdivide[0,1,LIMIT-1]]}] // Transpose
 ] ;
 (* ################################################################################################################################################################ *)
 (* GENERATE FULL INITIAL CONDITION *)

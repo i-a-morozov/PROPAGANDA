@@ -32,5 +32,7 @@ EXAMPLE-30 -- (FORTRAN) FODO ring (double extended)
 EXAMPLE-31 -- (FORTRAN) FODO ring (smooth quadrupole gradient)
 EXAMPLE-32 -- (FORTRAN) FODO ring (smooth sextupole gradient and fringe effects)
 EXAMPLE-33 -- (FORTRAN) Integrator signature patches
-
-21_01_2021
+EXAMPLE-34 -- (FORTRAN) FODO ring (quadrupole fringe effects)
+EXAMPLE-35 -- (FORTRAN) Inverse tracking
+ 
+28_01_2021
