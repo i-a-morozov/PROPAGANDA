@@ -1,5 +1,5 @@
-# PROPAGANDA, 2017-2020
-## I.A.MOROZOV@INP.NSK.SU
+# PROPAGANDA, 2017-2023
+
 Single particle nonlinear dynamics toolkit, explicit dynamics of derivatives, external FORTRAN code generation.
 
 | File | Description |
